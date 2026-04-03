@@ -179,12 +179,18 @@ export function useCardDAV() {
     }
   }
 
-  /** Delete all contacts in all address books. Returns the number deleted. */
+  /**
+   * Delete all contacts by wiping each address book collection and recreating it.
+   * This is a single DELETE + MKCOL per address book instead of N individual DELETEs,
+   * which avoids Radicale's file-lock contention on concurrent single-item deletes.
+   */
   async function deleteAllContacts(onProgress?: (done: number, total: number) => void): Promise<number> {
     const appToken = await getAppToken()
     const addressBooks = await discoverAddressBooks(appToken)
-    const allHrefs: string[] = []
 
+    // Count existing contacts for progress reporting
+    let total = 0
+    const bookEntries: { bookUrl: string; count: number }[] = []
     for (const bookUrl of addressBooks) {
       const response = await fetch(bookUrl, {
         method: 'REPORT',
@@ -193,24 +199,49 @@ export function useCardDAV() {
       })
       if (!response.ok) continue
       const xml = await response.text()
-      const entries = parseCardDAVReport(xml)
-      for (const { href } of entries) {
-        allHrefs.push(href.startsWith('http') ? href : `${window.location.origin}${href}`)
-      }
+      const count = parseCardDAVReport(xml).length
+      bookEntries.push({ bookUrl, count })
+      total += count
     }
 
+    onProgress?.(0, total)
+
     let done = 0
-    const BATCH = 10
-    for (let i = 0; i < allHrefs.length; i += BATCH) {
-      await Promise.all(
-        allHrefs.slice(i, i + BATCH).map((url) =>
-          deleteContact(url, appToken).then(() => {
-            done++
-            onProgress?.(done, allHrefs.length)
-          })
-        )
-      )
+    for (const { bookUrl, count } of bookEntries) {
+      // DELETE the entire collection (one request)
+      const delResp = await fetch(bookUrl, {
+        method: 'DELETE',
+        headers: { Authorization: basicAuthHeader(appToken) }
+      })
+      if (!delResp.ok && delResp.status !== 404) {
+        throw new Error(`DELETE collection failed: ${delResp.status} ${delResp.statusText}`)
+      }
+
+      // Recreate the address book collection (Extended MKCOL, RFC 5689)
+      const mkcolResp = await fetch(bookUrl, {
+        method: 'MKCOL',
+        headers: {
+          Authorization: basicAuthHeader(appToken),
+          'Content-Type': 'application/xml; charset=utf-8'
+        },
+        body: `<?xml version="1.0" encoding="utf-8"?>
+<D:mkcol xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:carddav">
+  <D:set>
+    <D:prop>
+      <D:resourcetype><D:collection/><C:addressbook/></D:resourcetype>
+      <D:displayname>Contacts</D:displayname>
+    </D:prop>
+  </D:set>
+</D:mkcol>`
+      })
+      if (!mkcolResp.ok && mkcolResp.status !== 201) {
+        throw new Error(`MKCOL failed: ${mkcolResp.status} ${mkcolResp.statusText}`)
+      }
+
+      done += count
+      onProgress?.(done, total)
     }
+
     return done
   }
 
