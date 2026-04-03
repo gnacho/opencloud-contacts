@@ -4,7 +4,11 @@
       class="avatar-preview"
       :style="previewStyle"
       :title="$gettext('Click to change photo')"
+      role="button"
+      tabindex="0"
+      :aria-label="$gettext('Change photo')"
       @click="fileInput?.click()"
+      @keydown.enter.space.prevent="fileInput?.click()"
     >
       <img v-if="modelValue" :src="modelValue" class="avatar-img" />
       <span v-else class="avatar-initials">{{ initials }}</span>
@@ -23,7 +27,8 @@
       <oc-icon name="close" size="small" />
     </oc-button>
 
-    <span class="avatar-hint">{{ $gettext('Max. 256 × 256 px · JPEG, PNG, GIF, WebP') }}</span>
+    <span v-if="uploadError" class="avatar-error">{{ uploadError }}</span>
+    <span v-else class="avatar-hint">{{ $gettext('Max. 256 × 256 px · PNG, WebP (with transparency) · JPEG, GIF') }}</span>
 
     <input
       ref="fileInput"
@@ -71,15 +76,27 @@ const previewStyle = computed(() => {
   return { backgroundColor: stringToColor(props.displayName || '?') }
 })
 
+const uploadError = ref('')
+
 function onFile(event: Event) {
-  const file = (event.target as HTMLInputElement).files?.[0]
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  // Reset input so the same file can be selected again
+  input.value = ''
   if (!file) return
 
-  // Resize to max 256x256 before storing
+  uploadError.value = ''
+
+  // Choose output format: preserve alpha for PNG/WebP, use JPEG otherwise
+  const hasAlpha = file.type === 'image/png' || file.type === 'image/webp'
+  const outMime = hasAlpha ? 'image/png' : 'image/jpeg'
+
   const reader = new FileReader()
+  reader.onerror = () => { uploadError.value = $gettext('Could not read file.') }
   reader.onload = (e) => {
     const dataUrl = e.target?.result as string
     const img = new Image()
+    img.onerror = () => { uploadError.value = $gettext('Invalid image file.') }
     img.onload = () => {
       const MAX = 256
       const scale = Math.min(1, MAX / Math.max(img.width, img.height))
@@ -88,15 +105,14 @@ function onFile(event: Event) {
       const canvas = document.createElement('canvas')
       canvas.width = w
       canvas.height = h
-      canvas.getContext('2d')!.drawImage(img, 0, 0, w, h)
-      emit('update:modelValue', canvas.toDataURL('image/jpeg', 0.85))
+      const ctx = canvas.getContext('2d')
+      if (!ctx) { uploadError.value = $gettext('Could not process image.'); return }
+      ctx.drawImage(img, 0, 0, w, h)
+      emit('update:modelValue', canvas.toDataURL(outMime, 0.9))
     }
     img.src = dataUrl
   }
   reader.readAsDataURL(file)
-
-  // Reset input so the same file can be selected again
-  ;(event.target as HTMLInputElement).value = ''
 }
 </script>
 
@@ -159,6 +175,13 @@ function onFile(event: Event) {
 .avatar-hint {
   font-size: 0.72rem;
   color: var(--oc-color-text-muted);
+  text-align: center;
+  line-height: 1.4;
+}
+
+.avatar-error {
+  font-size: 0.72rem;
+  color: var(--oc-color-swatch-danger-default);
   text-align: center;
   line-height: 1.4;
 }
