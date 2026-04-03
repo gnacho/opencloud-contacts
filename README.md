@@ -2,6 +2,9 @@
 
 A web extension for [OpenCloud](https://opencloud.eu) that provides a full-featured contacts management app using CardDAV (Radicale).
 
+> [!IMPORTANT]
+> This project is an independent, community-built tool and is not affiliated with, endorsed by, or associated with the [OpenCloud project](https://opencloud.eu) in any way.
+
 ## Features
 
 - Browse and search contacts loaded from CardDAV
