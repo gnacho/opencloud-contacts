@@ -21,6 +21,13 @@ const ADDRESSBOOK_QUERY = `<?xml version="1.0" encoding="utf-8" ?>
   </D:prop>
 </C:addressbook-query>`
 
+// Lightweight PROPFIND to list all items in a collection — used for delete
+// where we want every href regardless of vCard validity
+const LIST_ITEMS_PROPFIND = `<?xml version="1.0" encoding="utf-8" ?>
+<D:propfind xmlns:D="DAV:">
+  <D:prop><D:resourcetype/></D:prop>
+</D:propfind>`
+
 const APP_TOKEN_KEY = 'oc-contacts-app-token'
 
 export function useCardDAV() {
@@ -186,15 +193,23 @@ export function useCardDAV() {
     const allHrefs: string[] = []
 
     for (const bookUrl of addressBooks) {
+      // Use PROPFIND (not REPORT) so we get ALL hrefs regardless of vCard validity.
+      // parseCardDAVReport filters on BEGIN:VCARD content and would miss broken entries.
       const response = await fetch(bookUrl, {
-        method: 'REPORT',
+        method: 'PROPFIND',
         headers: cardDAVHeaders(appToken, { Depth: '1' }),
-        body: ADDRESSBOOK_QUERY
+        body: LIST_ITEMS_PROPFIND
       })
       if (!response.ok) continue
       const xml = await response.text()
-      for (const { href } of parseCardDAVReport(xml)) {
-        allHrefs.push(href.startsWith('http') ? href : `${window.location.origin}${href}`)
+      // Extract every href that looks like a vCard file (.vcf)
+      const hrefRegex = /<[^:>]*:?href[^>]*>([\s\S]*?)<\/[^:>]*:?href>/gi
+      let m: RegExpExecArray | null
+      while ((m = hrefRegex.exec(xml)) !== null) {
+        const href = m[1].trim()
+        if (href.endsWith('.vcf')) {
+          allHrefs.push(href.startsWith('http') ? href : `${window.location.origin}${href}`)
+        }
       }
     }
 
