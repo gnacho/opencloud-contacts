@@ -237,6 +237,18 @@ function sendEmail() {
   const c = contact.value
   if (!c) return
 
+  // Download vCard first so the user can attach it manually
+  const vcard = contactToVCard(c)
+  const blob = new Blob([vcard], { type: 'text/vcard;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const filename = `${c.displayName.replace(/[/\\?%*:|"<>]/g, '_')}.vcf`
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+
+  // Build email body with contact details
   const lines: string[] = []
   if (c.organization) lines.push(c.organization)
   for (const e of c.emails) lines.push(e.value)
@@ -247,6 +259,7 @@ function sendEmail() {
     if (addrStr) lines.push(addrStr)
   }
   if (c.websites?.length) lines.push(...c.websites)
+  lines.push('', `-- ${$gettext('Please attach the downloaded file')}: ${filename}`)
 
   const subject = encodeURIComponent(c.displayName)
   const body = encodeURIComponent(lines.join('\n'))
