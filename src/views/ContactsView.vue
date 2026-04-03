@@ -32,6 +32,17 @@
           {{ $gettext('New contact') }}
         </oc-button>
 
+        <!-- Export -->
+        <oc-button
+          :aria-label="$gettext('Export contacts')"
+          appearance="outline"
+          :disabled="!contacts.length"
+          @click="exportContacts"
+        >
+          <oc-icon name="download" size="small" />
+          {{ $gettext('Export') }}
+        </oc-button>
+
         <!-- Import -->
         <oc-button
           :aria-label="$gettext('Import contacts')"
@@ -189,6 +200,7 @@ import { useRouter, useUserStore } from '@opencloud-eu/web-pkg'
 import { useGettext } from 'vue3-gettext'
 import { useCardDAV } from '../composables/useCardDAV'
 import { useContactStore } from '../composables/useContactStore'
+import { exportContactsToCSV } from '../utils/csv-exporter'
 import ImportDialog from '../components/ImportDialog.vue'
 import NewContactDialog from '../components/NewContactDialog.vue'
 import type { Contact } from '../types/contact'
@@ -203,6 +215,17 @@ const sortKey = ref<'displayName' | 'organization' | 'email' | 'phone'>('display
 const sortAsc = ref(true)
 const showImport = ref(false)
 const showNew = ref(false)
+
+function exportContacts() {
+  const csv = exportContactsToCSV(contacts.value)
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `contacts-${new Date().toISOString().slice(0, 10)}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+}
 
 async function onImportDone() {
   showImport.value = false
