@@ -5,85 +5,93 @@ function esc(value: string): string {
     .replace(/\\/g, '\\\\')
     .replace(/;/g, '\\;')
     .replace(/,/g, '\\,')
-    .replace(/\n/g, '\\n')
+    .replace(/\r\n|\r|\n/g, '\\n')
 }
 
-/** Fold long vCard lines at 75 octets (RFC 6350 §3.2) */
+/**
+ * Fold long vCard lines at 75 *octets* (RFC 6350 §3.2).
+ * Uses TextEncoder so multi-byte UTF-8 characters are counted correctly.
+ */
 function foldLine(line: string): string {
-  if (line.length <= 75) return line
-  let result = ''
-  let pos = 0
-  result += line.slice(0, 75)
-  pos = 75
-  while (pos < line.length) {
-    result += '\r\n ' + line.slice(pos, pos + 74)
-    pos += 74
+  const encoder = new TextEncoder()
+  if (encoder.encode(line).length <= 75) return line
+
+  const parts: string[] = []
+  let start = 0
+  let isFirst = true
+
+  while (start < line.length) {
+    const limit = isFirst ? 75 : 74 // continuation lines have a leading space byte
+    let end = start
+    let bytes = 0
+
+    while (end < line.length) {
+      const cp = line.codePointAt(end)!
+      const step = cp > 0xffff ? 2 : 1
+      const charBytes = encoder.encode(line.slice(end, end + step)).length
+      if (bytes + charBytes > limit) break
+      bytes += charBytes
+      end += step
+    }
+
+    if (end === start) end = start + 1 // safety: single char wider than limit
+    parts.push(line.slice(start, end))
+    start = end
+    isFirst = false
   }
-  return result
+
+  return parts.join('\r\n ')
 }
 
 export function contactToVCard(contact: Contact): string {
-  const lines: string[] = ['BEGIN:VCARD', 'VERSION:3.0', `UID:${contact.uid}`]
+  const out: string[] = ['BEGIN:VCARD', 'VERSION:3.0', `UID:${contact.uid}`]
+  const push = (line: string) => out.push(foldLine(line))
 
-  // FN
-  lines.push(`FN:${esc(contact.displayName)}`)
+  push(`FN:${esc(contact.displayName)}`)
 
-  // N: Last;First;Middle;Prefix;Suffix
-  lines.push(
+  push(
     `N:${esc(contact.lastName ?? '')};${esc(contact.firstName ?? '')};${esc(contact.middleName ?? '')};${esc(contact.prefix ?? '')};${esc(contact.suffix ?? '')}`
   )
 
-  // Emails
   for (const email of contact.emails) {
     const type = email.type ? `;TYPE=${email.type}` : ''
-    lines.push(`EMAIL${type}:${esc(email.value)}`)
+    push(`EMAIL${type}:${esc(email.value)}`)
   }
 
-  // Phones
   for (const phone of contact.phones) {
     const type = phone.type ? `;TYPE=${phone.type}` : ''
-    lines.push(`TEL${type}:${esc(phone.value)}`)
+    push(`TEL${type}:${esc(phone.value)}`)
   }
 
-  // Org / Title
-  if (contact.organization) lines.push(`ORG:${esc(contact.organization)}`)
-  if (contact.title) lines.push(`TITLE:${esc(contact.title)}`)
+  if (contact.organization) push(`ORG:${esc(contact.organization)}`)
+  if (contact.title)        push(`TITLE:${esc(contact.title)}`)
+  if (contact.nickname)     push(`NICKNAME:${esc(contact.nickname)}`)
 
-  // Nickname
-  if (contact.nickname) lines.push(`NICKNAME:${esc(contact.nickname)}`)
-
-  // Addresses
   for (const addr of contact.addresses) {
     const type = addr.type ? `;TYPE=${addr.type}` : ''
-    lines.push(
+    push(
       `ADR${type}:;;${esc(addr.street ?? '')};${esc(addr.city ?? '')};${esc(addr.region ?? '')};${esc(addr.postalCode ?? '')};${esc(addr.country ?? '')}`
     )
   }
 
-  // Birthday
   if (contact.birthday) {
-    const bday = contact.birthday.replace(/-/g, '')
-    lines.push(`BDAY:${bday}`)
+    push(`BDAY:${contact.birthday.replace(/-/g, '')}`)
   }
 
-  // Websites
   for (const url of contact.websites ?? []) {
-    if (url.trim()) lines.push(`URL:${esc(url.trim())}`)
+    if (url.trim()) push(`URL:${esc(url.trim())}`)
   }
 
-  // Notes
-  if (contact.note) lines.push(`NOTE:${esc(contact.note)}`)
+  if (contact.note) push(`NOTE:${esc(contact.note)}`)
 
-  // Photo (Base64 data URI → inline vCard PHOTO, vCard 3.0 format with folding)
+  // Photo (Base64 data URI → inline vCard PHOTO, vCard 3.0 format)
   if (contact.photoUrl?.startsWith('data:')) {
     const match = contact.photoUrl.match(/^data:image\/(\w+);base64,(.+)$/)
     if (match) {
-      const mediaType = match[1].toUpperCase()
-      const b64 = match[2]
-      lines.push(foldLine(`PHOTO;ENCODING=BASE64;TYPE=${mediaType}:${b64}`))
+      push(`PHOTO;ENCODING=BASE64;TYPE=${match[1].toUpperCase()}:${match[2]}`)
     }
   }
 
-  lines.push('END:VCARD')
-  return lines.join('\r\n')
+  out.push('END:VCARD')
+  return out.join('\r\n')
 }
