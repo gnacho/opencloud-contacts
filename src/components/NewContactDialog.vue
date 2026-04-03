@@ -11,6 +11,11 @@
     <template #content>
       <div class="edit-form">
 
+        <!-- Photo -->
+        <div class="edit-avatar-row">
+          <avatar-upload v-model="form.photoUrl" :display-name="form.displayName || '?'" />
+        </div>
+
         <fieldset class="edit-section">
           <legend class="edit-section-title">{{ $gettext('Name') }}</legend>
           <div class="edit-row edit-row-2">
@@ -119,6 +124,7 @@ import { useCardDAV } from '../composables/useCardDAV'
 import { useContactStore } from '../composables/useContactStore'
 import { contactToVCard } from '../utils/vcard-builder'
 import type { Contact } from '../types/contact'
+import AvatarUpload from './AvatarUpload.vue'
 
 const emit = defineEmits<{ (e: 'close'): void; (e: 'created', contact: Contact): void }>()
 
@@ -140,7 +146,8 @@ const form = reactive({
   phones: [] as { value: string; type: string }[],
   birthday: '',
   website: '',
-  note: ''
+  note: '',
+  photoUrl: ''
 })
 
 function syncDisplayName() {
@@ -174,6 +181,7 @@ async function save() {
     birthday: form.birthday || undefined,
     websites: form.website.trim() ? [form.website.trim()] : undefined,
     note: form.note.trim() || undefined,
+    photoUrl: form.photoUrl || undefined,
     raw: ''
   }
 
@@ -198,6 +206,12 @@ async function save() {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+}
+
+.edit-avatar-row {
+  display: flex;
+  justify-content: center;
+  padding: 0.5rem 0;
 }
 
 .edit-section {

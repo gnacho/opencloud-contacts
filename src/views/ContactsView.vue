@@ -300,23 +300,18 @@ function avatarStyle(contact: Contact): Record<string, string> {
 
 const userStore = useUserStore()
 
-onMounted(() => {
-  if (userStore.user?.id) {
-    // User already available (e.g. after page reload)
-    loadContacts()
-  } else {
-    // Wait for user to be populated after login
-    const stop = watch(
-      () => userStore.user?.id,
-      (id) => {
-        if (id) {
-          stop()
-          loadContacts()
-        }
-      }
-    )
-  }
-})
+// Reload contacts whenever the logged-in user changes (login, user switch)
+watch(
+  () => userStore.user?.id,
+  (id) => {
+    if (id) {
+      // Clear cached app token so a fresh one is fetched for the new user
+      sessionStorage.removeItem('oc-contacts-app-token')
+      loadContacts()
+    }
+  },
+  { immediate: true }
+)
 </script>
 
 <style scoped>

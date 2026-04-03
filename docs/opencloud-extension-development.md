@@ -193,13 +193,9 @@ const menuItems: AppMenuItemExtension[] = [
 
 ### Server: App-Verzeichnis aktivieren
 
-In `opencloud.yaml` muss `OC_APPS_DIR` gesetzt und auf das Apps-Verzeichnis zeigen:
+OpenCloud Web lädt Extensions automatisch aus dem gebundenen Apps-Verzeichnis — `OC_APPS_DIR` muss nicht gesetzt werden. Das Standard-Volume reicht:
 
-```yaml
-OC_APPS_DIR: /etc/ocis/apps
-```
-
-In `docker-compose.yml` das Volume mounten:
+In `docker-compose.yml`:
 
 ```yaml
 volumes:
@@ -509,9 +505,9 @@ OpenCloud-CSS-Variablen (`--oc-color-border`, `--oc-color-background-default`) h
 |---------|---------|--------|
 | `vite: command not found` | vite nicht als devDep | `"vite": "^7.2.0"` in devDeps |
 | `vue3-gettext` nicht gefunden | `^3.0.0` existiert nicht | Version `2.3.4` exakt pinnen |
-| App erscheint nicht im Menü | `OC_APPS_DIR` nicht gesetzt | In `.env` und docker-compose Volume einrichten |
+| App erscheint nicht im Menü | Volume nicht gemountet | `config/opencloud/apps` in docker-compose als Volume eintragen |
 | 403 beim CardDAV-Zugriff | Falscher Auth-Typ | App-Token statt Bearer verwenden |
-| 401 mit LDAP-Fehler | `PROXY_ENABLE_APP_AUTH` fehlt | In `.env` setzen und Container neu starten |
+| 401 mit LDAP-Fehler | `PROXY_ENABLE_APP_AUTH` fehlt | `PROXY_ENABLE_APP_AUTH=true` in `.env` setzen und Container neu starten |
 | Username leer | `onPremisesSamAccountName` beim Start nicht befüllt | `user.id` (UUID) verwenden |
 | `GET /auth-app/tokens` liefert UUID | Falsche API-Nutzung | Immer `POST` für neuen Token |
 | `CR:address-data` nicht geparst | DOMParser-Namespace-Problem | Regex statt DOMParser nutzen |
@@ -532,9 +528,7 @@ OpenCloud-CSS-Variablen (`--oc-color-border`, `--oc-color-background-default`) h
 ### `.env` (Pflichteinträge für App-Token-Auth)
 
 ```env
-PROXY_ENABLE_BASIC_AUTH=true
 PROXY_ENABLE_APP_AUTH=true
-OC_APPS_DIR=/etc/ocis/apps
 ```
 
 ### `docker-compose.yml` – Apps-Volume
@@ -583,7 +577,7 @@ script-src:
 - [ ] `vite` als explizite devDep eintragen
 - [ ] `vue3-gettext` auf exakte Version `2.3.4` pinnen
 - [ ] `public/manifest.json` nicht anlegen
-- [ ] `OC_APPS_DIR` und `PROXY_ENABLE_APP_AUTH` in `.env` prüfen
+- [ ] `PROXY_ENABLE_APP_AUTH=true` in `.env` prüfen
 - [ ] `deploy.sh` mit korrektem `APP_NAME` und `REMOTE_*` konfigurieren
 - [ ] CardDAV-Auth: App-Token-Flow implementieren (POST `/auth-app/tokens`)
 - [ ] Router-Import: von `@opencloud-eu/web-pkg`, nicht `vue-router`

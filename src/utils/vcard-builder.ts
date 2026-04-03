@@ -60,6 +60,16 @@ export function contactToVCard(contact: Contact): string {
   // Notes
   if (contact.note) lines.push(`NOTE:${esc(contact.note)}`)
 
+  // Photo (Base64 data URI → inline vCard PHOTO)
+  if (contact.photoUrl?.startsWith('data:')) {
+    const match = contact.photoUrl.match(/^data:image\/(\w+);base64,(.+)$/)
+    if (match) {
+      const mediaType = match[1].toUpperCase()
+      const b64 = match[2]
+      lines.push(`PHOTO;ENCODING=b;TYPE=${mediaType}:${b64}`)
+    }
+  }
+
   lines.push('END:VCARD')
   return lines.join('\r\n')
 }
