@@ -102,7 +102,7 @@ import { useCardDAV } from '../composables/useCardDAV'
 const emit = defineEmits<{ (e: 'close'): void; (e: 'done'): void }>()
 
 const { $gettext } = useGettext()
-const { putContact, deleteAllContacts } = useCardDAV()
+const { putContactsBatch, deleteAllContacts } = useCardDAV()
 
 const fileInput = ref<HTMLInputElement | null>(null)
 const parsedContacts = ref<CsvContact[]>([])
@@ -184,15 +184,18 @@ async function startImport() {
       }
     }
 
-    for (const csvContact of parsedContacts.value) {
-      try {
-        const { uid, vcard } = csvContactToVCard(csvContact, setDefaultGroup.value ? 'Alle' : undefined)
-        await putContact(uid, vcard)
-      } catch (err) {
-        const name = displayName(csvContact)
-        errors.value.push(`${name}: ${err instanceof Error ? err.message : String(err)}`)
+    const items = parsedContacts.value.map((csvContact) =>
+      csvContactToVCard(csvContact, setDefaultGroup.value ? 'Alle' : undefined)
+    )
+
+    const results = await putContactsBatch(items, (done) => {
+      doneCount.value = done
+    })
+
+    for (let i = 0; i < results.length; i++) {
+      if (results[i].error) {
+        errors.value.push(`${displayName(parsedContacts.value[i])}: ${results[i].error}`)
       }
-      doneCount.value++
     }
   } catch (err) {
     errors.value.push(err instanceof Error ? err.message : String(err))

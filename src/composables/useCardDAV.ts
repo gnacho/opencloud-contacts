@@ -200,10 +200,16 @@ export function useCardDAV() {
     }
 
     let done = 0
-    for (const url of allHrefs) {
-      await deleteContact(url, appToken)
-      done++
-      onProgress?.(done, allHrefs.length)
+    const BATCH = 10
+    for (let i = 0; i < allHrefs.length; i += BATCH) {
+      await Promise.all(
+        allHrefs.slice(i, i + BATCH).map((url) =>
+          deleteContact(url, appToken).then(() => {
+            done++
+            onProgress?.(done, allHrefs.length)
+          })
+        )
+      )
     }
     return done
   }
@@ -234,6 +240,54 @@ export function useCardDAV() {
     return url
   }
 
+  /**
+   * Upload multiple vCards in parallel batches.
+   * Fetches app token and address book URL only once for the entire batch.
+   */
+  async function putContactsBatch(
+    items: { uid: string; vcard: string }[],
+    onProgress?: (done: number, total: number) => void
+  ): Promise<{ uid: string; href: string; error?: string }[]> {
+    const appToken = await getAppToken()
+    const addressBooks = await discoverAddressBooks(appToken)
+    if (!addressBooks.length) throw new Error('No address book found')
+
+    const bookUrl = addressBooks[0]
+    const results: { uid: string; href: string; error?: string }[] = []
+    let done = 0
+
+    const BATCH = 10
+    for (let i = 0; i < items.length; i += BATCH) {
+      const batch = items.slice(i, i + BATCH)
+      await Promise.all(
+        batch.map(async ({ uid, vcard }) => {
+          const url = bookUrl.endsWith('/') ? `${bookUrl}${uid}.vcf` : `${bookUrl}/${uid}.vcf`
+          try {
+            const response = await fetch(url, {
+              method: 'PUT',
+              headers: {
+                ...cardDAVHeaders(appToken),
+                'Content-Type': 'text/vcard; charset=utf-8',
+                'If-None-Match': '*'
+              },
+              body: vcard
+            })
+            if (!response.ok && response.status !== 201 && response.status !== 204) {
+              throw new Error(`PUT failed: ${response.status} ${response.statusText}`)
+            }
+            results.push({ uid, href: url })
+          } catch (err) {
+            results.push({ uid, href: url, error: err instanceof Error ? err.message : String(err) })
+          } finally {
+            done++
+            onProgress?.(done, items.length)
+          }
+        })
+      )
+    }
+    return results
+  }
+
   /** Update an existing contact (PUT with its known href) */
   async function updateContact(href: string, vcardData: string): Promise<void> {
     const appToken = await getAppToken()
@@ -262,6 +316,7 @@ export function useCardDAV() {
     error: readonly(error),
     loadContacts,
     putContact,
+    putContactsBatch,
     updateContact,
     deleteContactEntry,
     deleteAllContacts
