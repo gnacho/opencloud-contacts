@@ -4,3 +4,4 @@ dist/
 .env
 .__mf__temp/
 .claude/
+.codex
