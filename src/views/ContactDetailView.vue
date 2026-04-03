@@ -42,26 +42,22 @@
           <p v-if="contact.organization" class="detail-subtitle detail-org">{{ contact.organization }}</p>
 
           <div class="detail-actions">
-            <oc-button
+            <a
               v-if="contact.emails.length"
-              appearance="outline"
-              class="detail-action-btn"
               :href="`mailto:${contact.emails[0].value}`"
-              tag="a"
+              class="detail-action-btn detail-action-link"
             >
               <oc-icon name="mail" size="small" />
               {{ $gettext('Email') }}
-            </oc-button>
-            <oc-button
+            </a>
+            <a
               v-if="contact.phones.length"
-              appearance="outline"
-              class="detail-action-btn"
               :href="`tel:${contact.phones[0].value}`"
-              tag="a"
+              class="detail-action-btn detail-action-link"
             >
               <oc-icon name="phone" size="small" />
               {{ $gettext('Call') }}
-            </oc-button>
+            </a>
             <oc-button appearance="outline" class="detail-action-btn" @click="downloadVCard">
               <oc-icon name="download" size="small" />
               {{ $gettext('Download vCard') }}
@@ -421,6 +417,24 @@ function avatarStyle(c: Contact): Record<string, string> {
 .detail-action-btn {
   width: 100%;
   justify-content: center;
+}
+
+.detail-action-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--oc-color-border);
+  border-radius: 0.25rem;
+  text-decoration: none;
+  font-size: 0.9rem;
+  color: var(--oc-color-text-default);
+  background: transparent;
+}
+
+.detail-action-link:hover {
+  background: var(--oc-color-background-highlight);
 }
 
 /* --- Right: cards --- */
