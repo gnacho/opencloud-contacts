@@ -250,10 +250,7 @@ async function setDefaultGroup() {
 
   await updateContactsBatch(items, (done) => { groupDone.value = done })
 
-  // Update store so chips appear immediately without reload
-  const byHref = new Map(updated.map((c) => [c.href!, c]))
-  setContacts(contacts.value.map((c) => byHref.get(c.href!) ?? c))
-
+  await loadContacts()
   settingGroup.value = false
 }
 
