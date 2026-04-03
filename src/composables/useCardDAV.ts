@@ -290,32 +290,39 @@ export function useCardDAV() {
     if (!addressBooks.length) throw new Error('No address book found')
 
     const bookUrl = addressBooks[0]
-    const results: { uid: string; href: string; error?: string }[] = []
+    const results: { uid: string; href: string; error?: string }[] = new Array(items.length)
+    let completed = 0
 
-    // Sequential: Radicale uses per-collection file locking, concurrent writes
-    // queue up on the lock and are slower than sequential due to contention overhead.
-    for (let i = 0; i < items.length; i++) {
-      const { uid, vcard } = items[i]
-      const url = bookUrl.endsWith('/') ? `${bookUrl}${uid}.vcf` : `${bookUrl}/${uid}.vcf`
-      try {
-        const response = await fetch(url, {
-          method: 'PUT',
-          headers: {
-            ...cardDAVHeaders(appToken),
-            'Content-Type': 'text/vcard; charset=utf-8',
-            'If-None-Match': '*'
-          },
-          body: vcard
-        })
-        if (!response.ok && response.status !== 201 && response.status !== 204) {
-          throw new Error(`PUT failed: ${response.status} ${response.statusText}`)
+    // Sliding window concurrency: keeps CONCURRENCY requests in-flight at all times.
+    // Pure sequential wastes RTT waiting for each response; large batches cause
+    // Radicale file-lock contention. 5 concurrent hits the sweet spot.
+    const CONCURRENCY = 5
+    const queue = items.map((item, index) => ({ ...item, index }))
+    const workers = Array.from({ length: CONCURRENCY }, async () => {
+      while (queue.length > 0) {
+        const { uid, vcard, index } = queue.shift()!
+        const url = bookUrl.endsWith('/') ? `${bookUrl}${uid}.vcf` : `${bookUrl}/${uid}.vcf`
+        try {
+          const response = await fetch(url, {
+            method: 'PUT',
+            headers: {
+              ...cardDAVHeaders(appToken),
+              'Content-Type': 'text/vcard; charset=utf-8',
+              'If-None-Match': '*'
+            },
+            body: vcard
+          })
+          if (!response.ok && response.status !== 201 && response.status !== 204) {
+            throw new Error(`PUT failed: ${response.status} ${response.statusText}`)
+          }
+          results[index] = { uid, href: url }
+        } catch (err) {
+          results[index] = { uid, href: url, error: err instanceof Error ? err.message : String(err) }
         }
-        results.push({ uid, href: url })
-      } catch (err) {
-        results.push({ uid, href: url, error: err instanceof Error ? err.message : String(err) })
+        onProgress?.(++completed, items.length)
       }
-      onProgress?.(i + 1, items.length)
-    }
+    })
+    await Promise.all(workers)
     return results
   }
 
