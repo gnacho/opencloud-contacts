@@ -23,6 +23,8 @@
       <oc-icon name="close" size="small" />
     </oc-button>
 
+    <span class="avatar-hint">{{ $gettext('Max. 256 × 256 px · JPEG, PNG, GIF, WebP') }}</span>
+
     <input
       ref="fileInput"
       type="file"
@@ -152,6 +154,13 @@ function onFile(event: Event) {
 .avatar-remove {
   font-size: 0.75rem;
   color: var(--oc-color-swatch-danger-default);
+}
+
+.avatar-hint {
+  font-size: 0.72rem;
+  color: var(--oc-color-text-muted);
+  text-align: center;
+  line-height: 1.4;
 }
 
 .avatar-file-input {
