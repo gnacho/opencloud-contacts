@@ -291,36 +291,30 @@ export function useCardDAV() {
 
     const bookUrl = addressBooks[0]
     const results: { uid: string; href: string; error?: string }[] = []
-    let done = 0
 
-    const BATCH = 10
-    for (let i = 0; i < items.length; i += BATCH) {
-      const batch = items.slice(i, i + BATCH)
-      await Promise.all(
-        batch.map(async ({ uid, vcard }) => {
-          const url = bookUrl.endsWith('/') ? `${bookUrl}${uid}.vcf` : `${bookUrl}/${uid}.vcf`
-          try {
-            const response = await fetch(url, {
-              method: 'PUT',
-              headers: {
-                ...cardDAVHeaders(appToken),
-                'Content-Type': 'text/vcard; charset=utf-8',
-                'If-None-Match': '*'
-              },
-              body: vcard
-            })
-            if (!response.ok && response.status !== 201 && response.status !== 204) {
-              throw new Error(`PUT failed: ${response.status} ${response.statusText}`)
-            }
-            results.push({ uid, href: url })
-          } catch (err) {
-            results.push({ uid, href: url, error: err instanceof Error ? err.message : String(err) })
-          } finally {
-            done++
-            onProgress?.(done, items.length)
-          }
+    // Sequential: Radicale uses per-collection file locking, concurrent writes
+    // queue up on the lock and are slower than sequential due to contention overhead.
+    for (let i = 0; i < items.length; i++) {
+      const { uid, vcard } = items[i]
+      const url = bookUrl.endsWith('/') ? `${bookUrl}${uid}.vcf` : `${bookUrl}/${uid}.vcf`
+      try {
+        const response = await fetch(url, {
+          method: 'PUT',
+          headers: {
+            ...cardDAVHeaders(appToken),
+            'Content-Type': 'text/vcard; charset=utf-8',
+            'If-None-Match': '*'
+          },
+          body: vcard
         })
-      )
+        if (!response.ok && response.status !== 201 && response.status !== 204) {
+          throw new Error(`PUT failed: ${response.status} ${response.statusText}`)
+        }
+        results.push({ uid, href: url })
+      } catch (err) {
+        results.push({ uid, href: url, error: err instanceof Error ? err.message : String(err) })
+      }
+      onProgress?.(i + 1, items.length)
     }
     return results
   }
