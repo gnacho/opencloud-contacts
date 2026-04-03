@@ -1,10 +1,10 @@
 <template>
   <oc-modal
     :title="$gettext('Import contacts')"
-    :button-cancel-text="$gettext('Cancel')"
+    :button-cancel-text="done ? $gettext('Close') : $gettext('Cancel')"
     :button-confirm-text="importing ? $gettext('Importing…') : $gettext('Import')"
-    :button-confirm-disabled="!parsedContacts.length || importing"
-    @cancel="$emit('close')"
+    :button-confirm-disabled="!parsedContacts.length || importing || done"
+    @cancel="onClose"
     @confirm="startImport"
   >
     <template #content>
@@ -121,9 +121,17 @@ function displayName(c: CsvContact): string {
 
 function loadFile(file: File) {
   const reader = new FileReader()
+  reader.onerror = () => {
+    errors.value = [$gettext('Could not read file.')]
+  }
   reader.onload = (e) => {
     const text = e.target?.result as string
-    parsedContacts.value = parseThunderbirdCSV(text)
+    try {
+      parsedContacts.value = parseThunderbirdCSV(text)
+    } catch (err) {
+      errors.value = [err instanceof Error ? err.message : $gettext('Could not parse CSV file.')]
+      return
+    }
     errors.value = []
     done.value = false
     doneCount.value = 0
@@ -141,6 +149,14 @@ function onDrop(event: DragEvent) {
   if (file) loadFile(file)
 }
 
+function onClose() {
+  if (done.value) {
+    emit('done')
+  } else {
+    emit('close')
+  }
+}
+
 async function startImport() {
   importing.value = true
   done.value = false
@@ -150,29 +166,35 @@ async function startImport() {
   deleteCount.value = 0
   deleteTotal.value = 0
 
-  if (replaceAll.value) {
-    deleting.value = true
-    await deleteAllContacts((done, total) => {
-      deleteCount.value = done
-      deleteTotal.value = total
-    })
-    deleting.value = false
-  }
-
-  for (const csvContact of parsedContacts.value) {
-    try {
-      const { uid, vcard } = csvContactToVCard(csvContact)
-      await putContact(uid, vcard)
-    } catch (err) {
-      const name = displayName(csvContact)
-      errors.value.push(`${name}: ${err instanceof Error ? err.message : String(err)}`)
+  try {
+    if (replaceAll.value) {
+      deleting.value = true
+      try {
+        await deleteAllContacts((n, total) => {
+          deleteCount.value = n
+          deleteTotal.value = total
+        })
+      } finally {
+        deleting.value = false
+      }
     }
-    doneCount.value++
-  }
 
-  importing.value = false
-  done.value = true
-  emit('done')
+    for (const csvContact of parsedContacts.value) {
+      try {
+        const { uid, vcard } = csvContactToVCard(csvContact)
+        await putContact(uid, vcard)
+      } catch (err) {
+        const name = displayName(csvContact)
+        errors.value.push(`${name}: ${err instanceof Error ? err.message : String(err)}`)
+      }
+      doneCount.value++
+    }
+  } catch (err) {
+    errors.value.push(err instanceof Error ? err.message : String(err))
+  } finally {
+    importing.value = false
+    done.value = true
+  }
 }
 </script>
 
