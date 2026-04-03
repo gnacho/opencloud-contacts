@@ -2,3 +2,5 @@ node_modules/
 dist/
 *.local
 .env
+.__mf__temp/
+.claude/
