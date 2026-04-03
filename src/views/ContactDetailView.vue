@@ -42,24 +42,24 @@
           <p v-if="contact.organization" class="detail-subtitle detail-org">{{ contact.organization }}</p>
 
           <div class="detail-actions">
-            <a
+            <oc-button
               v-if="contact.emails.length"
-              :href="`mailto:${contact.emails[0].value}`"
-              class="detail-action-btn detail-action-link"
-              style="display:inline-flex;align-items:center;justify-content:center;gap:0.4rem;width:100%;padding:0.5rem 0.75rem;border:1px solid var(--oc-color-border);border-radius:0.25rem;text-decoration:none;font-size:0.875rem;color:var(--oc-color-text-default);box-sizing:border-box;"
+              appearance="outline"
+              class="detail-action-btn"
+              @click="openHref(`mailto:${contact.emails[0].value}`)"
             >
               <oc-icon name="mail" size="small" />
               {{ $gettext('Email') }}
-            </a>
-            <a
+            </oc-button>
+            <oc-button
               v-if="contact.phones.length"
-              :href="`tel:${contact.phones[0].value}`"
-              class="detail-action-btn detail-action-link"
-              style="display:inline-flex;align-items:center;justify-content:center;gap:0.4rem;width:100%;padding:0.5rem 0.75rem;border:1px solid var(--oc-color-border);border-radius:0.25rem;text-decoration:none;font-size:0.875rem;color:var(--oc-color-text-default);box-sizing:border-box;"
+              appearance="outline"
+              class="detail-action-btn"
+              @click="openHref(`tel:${contact.phones[0].value}`)"
             >
               <oc-icon name="phone" size="small" />
               {{ $gettext('Call') }}
-            </a>
+            </oc-button>
             <oc-button appearance="outline" class="detail-action-btn" @click="downloadVCard">
               <oc-icon name="download" size="small" />
               {{ $gettext('Download vCard') }}
@@ -212,6 +212,10 @@ function goBack() {
 function onSaved(updated: Contact) {
   showEdit.value = false
   // currentUid stays the same, contact computed will re-read from store
+}
+
+function openHref(url: string) {
+  window.location.href = url
 }
 
 function downloadVCard() {
