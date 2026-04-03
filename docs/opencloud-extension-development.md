@@ -220,15 +220,6 @@ OpenCloud nutzt **Bearer-Token** (OAuth2/OIDC via Keycloak) für die Web-UI. Rad
 3. Alle CardDAV-Anfragen: Authorization: Basic base64(username:app-token)
 ```
 
-### Voraussetzungen auf dem Server (.env)
-
-```env
-PROXY_ENABLE_BASIC_AUTH=true
-PROXY_ENABLE_APP_AUTH=true
-```
-
-Ohne `PROXY_ENABLE_APP_AUTH=true` schlägt Basic Auth mit "401 LDAP error code 8" fehl.
-
 ### Implementierung (`useCardDAV.ts`)
 
 ```typescript
@@ -507,7 +498,6 @@ OpenCloud-CSS-Variablen (`--oc-color-border`, `--oc-color-background-default`) h
 | `vue3-gettext` nicht gefunden | `^3.0.0` existiert nicht | Version `2.3.4` exakt pinnen |
 | App erscheint nicht im Menü | Volume nicht gemountet | `config/opencloud/apps` in docker-compose als Volume eintragen |
 | 403 beim CardDAV-Zugriff | Falscher Auth-Typ | App-Token statt Bearer verwenden |
-| 401 mit LDAP-Fehler | `PROXY_ENABLE_APP_AUTH` fehlt | `PROXY_ENABLE_APP_AUTH=true` in `.env` setzen und Container neu starten |
 | Username leer | `onPremisesSamAccountName` beim Start nicht befüllt | `user.id` (UUID) verwenden |
 | `GET /auth-app/tokens` liefert UUID | Falsche API-Nutzung | Immer `POST` für neuen Token |
 | `CR:address-data` nicht geparst | DOMParser-Namespace-Problem | Regex statt DOMParser nutzen |
@@ -524,12 +514,6 @@ OpenCloud-CSS-Variablen (`--oc-color-border`, `--oc-color-background-default`) h
 ---
 
 ## 11. Server-Konfiguration
-
-### `.env` (Pflichteinträge für App-Token-Auth)
-
-```env
-PROXY_ENABLE_APP_AUTH=true
-```
 
 ### `docker-compose.yml` – Apps-Volume
 
@@ -577,7 +561,6 @@ script-src:
 - [ ] `vite` als explizite devDep eintragen
 - [ ] `vue3-gettext` auf exakte Version `2.3.4` pinnen
 - [ ] `public/manifest.json` nicht anlegen
-- [ ] `PROXY_ENABLE_APP_AUTH=true` in `.env` prüfen
 - [ ] `deploy.sh` mit korrektem `APP_NAME` und `REMOTE_*` konfigurieren
 - [ ] CardDAV-Auth: App-Token-Flow implementieren (POST `/auth-app/tokens`)
 - [ ] Router-Import: von `@opencloud-eu/web-pkg`, nicht `vue-router`

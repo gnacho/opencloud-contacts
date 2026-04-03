@@ -20,14 +20,6 @@ A web extension for [OpenCloud](https://opencloud.eu) that provides a full-featu
 
 ## Prerequisites
 
-### Server (.env)
-
-The following environment variables must be set in your OpenCloud deployment:
-
-```env
-PROXY_ENABLE_APP_AUTH=true
-```
-
 ### docker-compose.yml
 
 OpenCloud Web automatically loads extensions from a local directory — no `OC_APPS_DIR` variable needed. The default bind mount to `config/opencloud/apps` is sufficient:
