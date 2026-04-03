@@ -129,17 +129,21 @@
         <!-- More -->
         <fieldset class="edit-section">
           <legend class="edit-section-title">{{ $gettext('More') }}</legend>
-          <div class="edit-row edit-row-2">
-            <div class="edit-field">
-              <label>{{ $gettext('Birthday') }}</label>
-              <input v-model="form.birthday" type="date" class="oc-text-input" />
-            </div>
-            <div class="edit-field">
-              <label>{{ $gettext('Website') }}</label>
-              <input v-model="form.website" type="url" class="oc-text-input" :placeholder="$gettext('https://…')" />
-            </div>
+          <div class="edit-field" style="margin-top: 0.5rem">
+            <label>{{ $gettext('Birthday') }}</label>
+            <input v-model="form.birthday" type="date" class="oc-text-input" style="max-width: 14rem" />
           </div>
-          <div class="edit-field">
+          <div v-for="(url, i) in form.websites" :key="i" class="edit-row edit-row-dynamic" style="margin-top: 0.5rem">
+            <input v-model="form.websites[i]" type="url" class="oc-text-input edit-grow" :placeholder="$gettext('https://…')" />
+            <oc-button appearance="raw" class="edit-remove-btn" @click="form.websites.splice(i, 1)">
+              <oc-icon name="close" size="small" />
+            </oc-button>
+          </div>
+          <oc-button appearance="outline" size="small" style="margin-top: 0.5rem" @click="form.websites.push('')">
+            <oc-icon name="add" size="small" />
+            {{ $gettext('Add website') }}
+          </oc-button>
+          <div class="edit-field" style="margin-top: 0.5rem">
             <label>{{ $gettext('Notes') }}</label>
             <textarea v-model="form.note" class="oc-textarea" rows="3" />
           </div>
@@ -189,7 +193,7 @@ const form = reactive({
   phones: props.contact.phones.map((p) => ({ ...p })) as ContactPhone[],
   addresses: props.contact.addresses.map((a) => ({ ...a })) as ContactAddress[],
   birthday: toDateInput(props.contact.birthday),
-  website: props.contact.websites?.[0] ?? '',
+  websites: (props.contact.websites ?? []).map((u) => u),
   note: props.contact.note ?? '',
   photoUrl: props.contact.photoUrl ?? ''
 })
@@ -216,9 +220,11 @@ async function save() {
     title: form.title.trim() || undefined,
     emails: form.emails.filter((e) => e.value.trim()),
     phones: form.phones.filter((p) => p.value.trim()),
-    addresses: form.addresses,
+    addresses: form.addresses.filter((a) =>
+      a.street || a.city || a.postalCode || a.country || a.region
+    ),
     birthday: form.birthday || undefined,
-    websites: form.website.trim() ? [form.website.trim()] : undefined,
+    websites: form.websites.map((u) => u.trim()).filter(Boolean) || undefined,
     note: form.note.trim() || undefined,
     photoUrl: form.photoUrl || undefined
   }

@@ -84,12 +84,14 @@ export function contactToVCard(contact: Contact): string {
 
   if (contact.note) push(`NOTE:${esc(contact.note)}`)
 
-  // Photo (Base64 data URI → inline vCard PHOTO, vCard 3.0 format)
+  // Photo: inline Base64 or external URI
   if (contact.photoUrl?.startsWith('data:')) {
     const match = contact.photoUrl.match(/^data:image\/(\w+);base64,(.+)$/)
     if (match) {
       push(`PHOTO;ENCODING=BASE64;TYPE=${match[1].toUpperCase()}:${match[2]}`)
     }
+  } else if (contact.photoUrl?.startsWith('http')) {
+    push(`PHOTO;VALUE=URI:${contact.photoUrl}`)
   }
 
   out.push('END:VCARD')
