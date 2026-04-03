@@ -53,6 +53,20 @@
           {{ $gettext('Import') }}
         </oc-button>
 
+        <!-- Set default group -->
+        <oc-button
+          v-if="contactsWithoutGroup.length && !settingGroup"
+          :aria-label="$gettext('Set group for contacts without group')"
+          appearance="outline"
+          @click="setDefaultGroup"
+        >
+          <oc-icon name="group" size="small" />
+          {{ $gettext('Set group \'Alle\' (%{n})', { n: contactsWithoutGroup.length }) }}
+        </oc-button>
+        <span v-if="settingGroup" class="group-progress">
+          {{ $gettext('Updating…') }} {{ groupDone }} / {{ groupTotal }}
+        </span>
+
         <!-- Reload -->
         <oc-button
           :aria-label="$gettext('Reload contacts')"
@@ -203,15 +217,45 @@ import { useRouter, useUserStore } from '@opencloud-eu/web-pkg'
 import { useGettext } from 'vue3-gettext'
 import { useCardDAV } from '../composables/useCardDAV'
 import { useContactStore } from '../composables/useContactStore'
+import { contactToVCard } from '../utils/vcard-builder'
 import { exportContactsToCSV } from '../utils/csv-exporter'
 import ImportDialog from '../components/ImportDialog.vue'
 import NewContactDialog from '../components/NewContactDialog.vue'
 import type { Contact } from '../types/contact'
 
 const { $gettext } = useGettext()
-const { contacts, loading, error, loadContacts } = useCardDAV()
-const { setNavigationList } = useContactStore()
+const { contacts, loading, error, loadContacts, updateContactsBatch } = useCardDAV()
+const { setNavigationList, setContacts } = useContactStore()
 const router = useRouter()
+
+const settingGroup = ref(false)
+const groupDone = ref(0)
+const groupTotal = ref(0)
+
+const contactsWithoutGroup = computed(() =>
+  contacts.value.filter((c) => !c.categories?.length && c.href)
+)
+
+async function setDefaultGroup() {
+  settingGroup.value = true
+  groupDone.value = 0
+  groupTotal.value = contactsWithoutGroup.value.length
+
+  const updated = contactsWithoutGroup.value.map((c) => ({
+    ...c,
+    categories: ['Alle']
+  }))
+
+  const items = updated.map((c) => ({ href: c.href!, vcard: contactToVCard(c) }))
+
+  await updateContactsBatch(items, (done) => { groupDone.value = done })
+
+  // Update store so chips appear immediately without reload
+  const byHref = new Map(updated.map((c) => [c.href!, c]))
+  setContacts(contacts.value.map((c) => byHref.get(c.href!) ?? c))
+
+  settingGroup.value = false
+}
 
 const searchQuery = ref('')
 const sortKey = ref<'displayName' | 'organization' | 'email' | 'phone'>('displayName')
@@ -547,6 +591,12 @@ watch(
 
 .contact-link:hover {
   text-decoration: underline;
+}
+
+.group-progress {
+  font-size: 0.85rem;
+  color: var(--oc-color-text-muted);
+  white-space: nowrap;
 }
 
 .text-muted {

@@ -217,7 +217,7 @@ export function useCardDAV() {
     let done = 0
     onProgress?.(0, total)
 
-    const CONCURRENCY = 5
+    const CONCURRENCY = 20
     const queue = [...allHrefs]
     const workers = Array.from({ length: CONCURRENCY }, async () => {
       while (queue.length > 0) {
@@ -275,7 +275,7 @@ export function useCardDAV() {
     // Sliding window concurrency: keeps CONCURRENCY requests in-flight at all times.
     // Pure sequential wastes RTT waiting for each response; large batches cause
     // Radicale file-lock contention. 5 concurrent hits the sweet spot.
-    const CONCURRENCY = 5
+    const CONCURRENCY = 20
     const queue = items.map((item, index) => ({ ...item, index }))
     const workers = Array.from({ length: CONCURRENCY }, async () => {
       while (queue.length > 0) {
@@ -297,6 +297,40 @@ export function useCardDAV() {
           results[index] = { uid, href: url }
         } catch (err) {
           results[index] = { uid, href: url, error: err instanceof Error ? err.message : String(err) }
+        }
+        onProgress?.(++completed, items.length)
+      }
+    })
+    await Promise.all(workers)
+    return results
+  }
+
+  /** Update multiple existing contacts in parallel (sliding window). */
+  async function updateContactsBatch(
+    items: { href: string; vcard: string }[],
+    onProgress?: (done: number, total: number) => void
+  ): Promise<{ href: string; error?: string }[]> {
+    const appToken = await getAppToken()
+    const results: { href: string; error?: string }[] = new Array(items.length)
+    let completed = 0
+
+    const CONCURRENCY = 20
+    const queue = items.map((item, index) => ({ ...item, index }))
+    const workers = Array.from({ length: CONCURRENCY }, async () => {
+      while (queue.length > 0) {
+        const { href, vcard, index } = queue.shift()!
+        try {
+          const response = await fetch(href, {
+            method: 'PUT',
+            headers: { ...cardDAVHeaders(appToken), 'Content-Type': 'text/vcard; charset=utf-8' },
+            body: vcard
+          })
+          if (!response.ok && response.status !== 201 && response.status !== 204) {
+            throw new Error(`PUT failed: ${response.status} ${response.statusText}`)
+          }
+          results[index] = { href }
+        } catch (err) {
+          results[index] = { href, error: err instanceof Error ? err.message : String(err) }
         }
         onProgress?.(++completed, items.length)
       }
@@ -334,6 +368,7 @@ export function useCardDAV() {
     loadContacts,
     putContact,
     putContactsBatch,
+    updateContactsBatch,
     updateContact,
     deleteContactEntry,
     deleteAllContacts
