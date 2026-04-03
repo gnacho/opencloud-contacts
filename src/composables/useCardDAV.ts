@@ -208,6 +208,12 @@ export function useCardDAV() {
 
     let done = 0
     for (const { bookUrl, count } of bookEntries) {
+      // Safety guard: only wipe collections that were returned by discoverAddressBooks,
+      // which filters strictly for CardDAV addressbook resource type (not calendars).
+      if (!addressBooks.includes(bookUrl)) {
+        throw new Error(`Safety check failed: refusing to delete non-addressbook URL: ${bookUrl}`)
+      }
+
       // DELETE the entire collection (one request)
       const delResp = await fetch(bookUrl, {
         method: 'DELETE',
