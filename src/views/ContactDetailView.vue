@@ -62,6 +62,14 @@
               <oc-icon name="phone" size="small" />
               {{ $gettext('Call') }}
             </oc-button>
+            <oc-button appearance="outline" class="detail-action-btn" @click="downloadVCard">
+              <oc-icon name="download" size="small" />
+              {{ $gettext('Download vCard') }}
+            </oc-button>
+            <oc-button appearance="outline" class="detail-action-btn" @click="sendEmail">
+              <oc-icon name="share-forward" size="small" />
+              {{ $gettext('Send as email') }}
+            </oc-button>
             <oc-button appearance="outline" class="detail-action-btn" @click="showEdit = true">
               <oc-icon name="edit" size="small" />
               {{ $gettext('Edit') }}
@@ -177,6 +185,7 @@ import { useRouter } from '@opencloud-eu/web-pkg'
 import { useGettext } from 'vue3-gettext'
 import { useContactStore } from '../composables/useContactStore'
 import { useCardDAV } from '../composables/useCardDAV'
+import { contactToVCard } from '../utils/vcard-builder'
 import EditContactDialog from '../components/EditContactDialog.vue'
 import type { Contact } from '../types/contact'
 
@@ -209,6 +218,39 @@ function goBack() {
 function onSaved(updated: Contact) {
   showEdit.value = false
   // currentUid stays the same, contact computed will re-read from store
+}
+
+function downloadVCard() {
+  const c = contact.value
+  if (!c) return
+  const vcard = contactToVCard(c)
+  const blob = new Blob([vcard], { type: 'text/vcard;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${c.displayName.replace(/[/\\?%*:|"<>]/g, '_')}.vcf`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+function sendEmail() {
+  const c = contact.value
+  if (!c) return
+
+  const lines: string[] = []
+  if (c.organization) lines.push(c.organization)
+  for (const e of c.emails) lines.push(e.value)
+  for (const p of c.phones) lines.push(p.value)
+  for (const addr of c.addresses) {
+    const parts = [addr.street, [addr.postalCode, addr.city].filter(Boolean).join(' '), addr.country]
+    const addrStr = parts.filter(Boolean).join(', ')
+    if (addrStr) lines.push(addrStr)
+  }
+  if (c.websites?.length) lines.push(...c.websites)
+
+  const subject = encodeURIComponent(c.displayName)
+  const body = encodeURIComponent(lines.join('\n'))
+  window.location.href = `mailto:?subject=${subject}&body=${body}`
 }
 
 async function confirmDelete() {
