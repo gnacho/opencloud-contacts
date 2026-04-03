@@ -420,21 +420,26 @@ function avatarStyle(c: Contact): Record<string, string> {
 }
 
 .detail-action-link {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.4rem;
-  padding: 0.4rem 0.75rem;
-  border: 1px solid var(--oc-color-border);
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--oc-color-swatch-brand-default);
   border-radius: 0.25rem;
   text-decoration: none;
-  font-size: 0.9rem;
-  color: var(--oc-color-text-default);
+  font-size: 0.875rem;
+  font-family: inherit;
+  font-weight: 400;
+  color: var(--oc-color-swatch-brand-default);
   background: transparent;
+  box-sizing: border-box;
+  cursor: pointer;
 }
 
 .detail-action-link:hover {
-  background: var(--oc-color-background-highlight);
+  background: color-mix(in srgb, var(--oc-color-swatch-brand-default) 10%, transparent);
 }
 
 /* --- Right: cards --- */
