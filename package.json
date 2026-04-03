@@ -8,6 +8,8 @@
     "build": "vite build",
     "build:watch": "vite build --watch",
     "type-check": "vue-tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "lint": "eslint . --fix",
     "format": "prettier --write src/"
   },
@@ -22,6 +24,7 @@
     "@opencloud-eu/tsconfig": "^6.0.0",
     "typescript": "^5.8.2",
     "vite": "^7.2.0",
+    "vitest": "^3.2.4",
     "vue-tsc": "^2.2.0",
     "vue3-gettext": "2.3.4"
   },
