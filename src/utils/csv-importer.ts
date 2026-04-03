@@ -277,7 +277,7 @@ function foldLine(line: string): string {
   return parts.join('\r\n ')
 }
 
-export function csvContactToVCard(c: CsvContact): { uid: string; vcard: string } {
+export function csvContactToVCard(c: CsvContact, defaultCategory?: string): { uid: string; vcard: string } {
   const uid = crypto.randomUUID()
   const out: string[] = ['BEGIN:VCARD', 'VERSION:3.0', `UID:${uid}`]
   const push = (line: string) => out.push(foldLine(line))
@@ -322,6 +322,8 @@ export function csvContactToVCard(c: CsvContact): { uid: string; vcard: string }
 
   if (c.website1) push(`URL:${escapeVCard(c.website1)}`)
   if (c.website2) push(`URL:${escapeVCard(c.website2)}`)
+
+  if (defaultCategory) push(`CATEGORIES:${escapeVCard(defaultCategory)}`)
 
   if (c.notes) push(`NOTE:${escapeVCard(c.notes)}`)
 

@@ -8,11 +8,15 @@
     @confirm="startImport"
   >
     <template #content>
-      <!-- Replace option (always visible) -->
-      <div v-if="!importing" class="import-replace">
-        <label class="import-replace-label">
+      <!-- Import options (always visible before import) -->
+      <div v-if="!importing" class="import-options">
+        <label class="import-option-label">
           <input v-model="replaceAll" type="checkbox" />
           {{ $gettext('Delete all existing contacts before import') }}
+        </label>
+        <label class="import-option-label">
+          <input v-model="setDefaultGroup" type="checkbox" />
+          {{ $gettext("Set group 'Alle' for contacts without a group") }}
         </label>
       </div>
 
@@ -107,6 +111,7 @@ const done = ref(false)
 const doneCount = ref(0)
 const errors = ref<string[]>([])
 const replaceAll = ref(false)
+const setDefaultGroup = ref(true)
 const deleting = ref(false)
 const deleteCount = ref(0)
 const deleteTotal = ref(0)
@@ -181,7 +186,7 @@ async function startImport() {
 
     for (const csvContact of parsedContacts.value) {
       try {
-        const { uid, vcard } = csvContactToVCard(csvContact)
+        const { uid, vcard } = csvContactToVCard(csvContact, setDefaultGroup.value ? 'Alle' : undefined)
         await putContact(uid, vcard)
       } catch (err) {
         const name = displayName(csvContact)
@@ -254,11 +259,14 @@ async function startImport() {
   text-align: center;
 }
 
-.import-replace {
+.import-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
   margin: 0.75rem 0;
 }
 
-.import-replace-label {
+.import-option-label {
   display: flex;
   align-items: center;
   gap: 0.5rem;

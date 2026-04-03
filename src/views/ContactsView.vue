@@ -156,6 +156,9 @@
             <td class="col-name">
               <span class="contact-name">{{ contact.displayName }}</span>
               <span v-if="contact.title" class="contact-title">{{ contact.title }}</span>
+              <span v-if="contact.categories?.length" class="contact-categories">
+                <span v-for="cat in contact.categories" :key="cat" class="contact-category-chip">{{ cat }}</span>
+              </span>
             </td>
 
             <!-- Organisation -->
@@ -517,6 +520,24 @@ watch(
   font-size: 0.78rem;
   color: var(--oc-color-text-muted);
   margin-top: 0.1rem;
+}
+
+.contact-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.2rem;
+}
+
+.contact-category-chip {
+  display: inline-block;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  background: var(--oc-color-swatch-brand-default);
+  color: #fff;
+  line-height: 1.6;
 }
 
 .contact-link {

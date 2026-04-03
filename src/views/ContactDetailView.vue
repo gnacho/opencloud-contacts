@@ -152,6 +152,14 @@
             </div>
           </div>
 
+          <!-- Groups -->
+          <div v-if="contact.categories?.length" class="detail-card">
+            <h2 class="detail-card-title">{{ $gettext('Groups') }}</h2>
+            <div class="detail-categories">
+              <span v-for="cat in contact.categories" :key="cat" class="detail-category-chip">{{ cat }}</span>
+            </div>
+          </div>
+
           <!-- Notes -->
           <div v-if="contact.note" class="detail-card">
             <h2 class="detail-card-title">{{ $gettext('Notes') }}</h2>
@@ -526,6 +534,23 @@ function avatarStyle(c: Contact): Record<string, string> {
   background: var(--oc-color-background-default);
   color: var(--oc-color-text-muted);
   vertical-align: middle;
+}
+
+.detail-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.detail-category-chip {
+  display: inline-block;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: var(--oc-color-swatch-brand-default);
+  color: #fff;
+  line-height: 1.6;
 }
 
 .detail-note {
