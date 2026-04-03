@@ -8,8 +8,22 @@ function esc(value: string): string {
     .replace(/\n/g, '\\n')
 }
 
+/** Fold long vCard lines at 75 octets (RFC 6350 §3.2) */
+function foldLine(line: string): string {
+  if (line.length <= 75) return line
+  let result = ''
+  let pos = 0
+  result += line.slice(0, 75)
+  pos = 75
+  while (pos < line.length) {
+    result += '\r\n ' + line.slice(pos, pos + 74)
+    pos += 74
+  }
+  return result
+}
+
 export function contactToVCard(contact: Contact): string {
-  const lines: string[] = ['BEGIN:VCARD', 'VERSION:4.0', `UID:${contact.uid}`]
+  const lines: string[] = ['BEGIN:VCARD', 'VERSION:3.0', `UID:${contact.uid}`]
 
   // FN
   lines.push(`FN:${esc(contact.displayName)}`)
@@ -60,13 +74,13 @@ export function contactToVCard(contact: Contact): string {
   // Notes
   if (contact.note) lines.push(`NOTE:${esc(contact.note)}`)
 
-  // Photo (Base64 data URI → inline vCard PHOTO)
+  // Photo (Base64 data URI → inline vCard PHOTO, vCard 3.0 format with folding)
   if (contact.photoUrl?.startsWith('data:')) {
     const match = contact.photoUrl.match(/^data:image\/(\w+);base64,(.+)$/)
     if (match) {
       const mediaType = match[1].toUpperCase()
       const b64 = match[2]
-      lines.push(`PHOTO;ENCODING=b;TYPE=${mediaType}:${b64}`)
+      lines.push(foldLine(`PHOTO;ENCODING=BASE64;TYPE=${mediaType}:${b64}`))
     }
   }
 
