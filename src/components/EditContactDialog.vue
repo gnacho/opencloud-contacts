@@ -126,6 +126,21 @@
           </oc-button>
         </fieldset>
 
+        <!-- Groups -->
+        <fieldset class="edit-section">
+          <legend class="edit-section-title">{{ $gettext('Groups') }}</legend>
+          <div v-for="(cat, i) in form.categories" :key="i" class="edit-row edit-row-dynamic" style="margin-top: 0.5rem">
+            <input v-model="form.categories[i]" type="text" class="oc-text-input edit-grow" :placeholder="$gettext('Group name')" />
+            <oc-button appearance="raw" class="edit-remove-btn" @click="form.categories.splice(i, 1)">
+              <oc-icon name="close" size="small" />
+            </oc-button>
+          </div>
+          <oc-button appearance="outline" size="small" style="margin-top: 0.5rem" @click="form.categories.push('')">
+            <oc-icon name="add" size="small" />
+            {{ $gettext('Add group') }}
+          </oc-button>
+        </fieldset>
+
         <!-- More -->
         <fieldset class="edit-section">
           <legend class="edit-section-title">{{ $gettext('More') }}</legend>
@@ -194,6 +209,7 @@ const form = reactive({
   addresses: props.contact.addresses.map((a) => ({ ...a })) as ContactAddress[],
   birthday: toDateInput(props.contact.birthday),
   websites: (props.contact.websites ?? []).map((u) => u),
+  categories: (props.contact.categories ?? ['Alle']).map((c) => c),
   note: props.contact.note ?? '',
   photoUrl: props.contact.photoUrl ?? ''
 })
@@ -225,6 +241,7 @@ async function save() {
     ),
     birthday: form.birthday || undefined,
     websites: form.websites.map((u) => u.trim()).filter(Boolean) || undefined,
+    categories: form.categories.map((c) => c.trim()).filter(Boolean) || undefined,
     note: form.note.trim() || undefined,
     photoUrl: form.photoUrl || undefined
   }

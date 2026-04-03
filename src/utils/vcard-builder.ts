@@ -82,6 +82,10 @@ export function contactToVCard(contact: Contact): string {
     if (url.trim()) push(`URL:${esc(url.trim())}`)
   }
 
+  if (contact.categories?.length) {
+    push(`CATEGORIES:${contact.categories.map(esc).join(',')}`)
+  }
+
   if (contact.note) push(`NOTE:${esc(contact.note)}`)
 
   // Photo: inline Base64 or external URI

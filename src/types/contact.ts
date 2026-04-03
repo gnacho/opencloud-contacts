@@ -52,4 +52,6 @@ export interface Contact {
   photoUrl?: string
   /** Notes */
   note?: string
+  /** Contact groups / categories (CATEGORIES field) */
+  categories?: string[]
 }

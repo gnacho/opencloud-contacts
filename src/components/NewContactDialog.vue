@@ -94,6 +94,20 @@
         </fieldset>
 
         <fieldset class="edit-section">
+          <legend class="edit-section-title">{{ $gettext('Groups') }}</legend>
+          <div v-for="(cat, i) in form.categories" :key="i" class="edit-row edit-row-dynamic" style="margin-top: 0.5rem">
+            <input v-model="form.categories[i]" type="text" class="oc-text-input edit-grow" :placeholder="$gettext('Group name')" />
+            <oc-button appearance="raw" class="edit-remove-btn" @click="form.categories.splice(i, 1)">
+              <oc-icon name="close" size="small" />
+            </oc-button>
+          </div>
+          <oc-button appearance="outline" size="small" style="margin-top: 0.5rem" @click="form.categories.push('')">
+            <oc-icon name="add" size="small" />
+            {{ $gettext('Add group') }}
+          </oc-button>
+        </fieldset>
+
+        <fieldset class="edit-section">
           <legend class="edit-section-title">{{ $gettext('More') }}</legend>
           <div class="edit-field" style="margin-top: 0.5rem">
             <label>{{ $gettext('Birthday') }}</label>
@@ -150,6 +164,7 @@ const form = reactive({
   phones: [] as { value: string; type: string }[],
   birthday: '',
   websites: [] as string[],
+  categories: ['Alle'] as string[],
   note: '',
   photoUrl: ''
 })
@@ -190,6 +205,7 @@ async function save() {
     addresses: [],
     birthday: form.birthday || undefined,
     websites: form.websites.map((u) => u.trim()).filter(Boolean) || undefined,
+    categories: form.categories.map((c) => c.trim()).filter(Boolean) || undefined,
     note: form.note.trim() || undefined,
     photoUrl: form.photoUrl || undefined,
     raw: ''

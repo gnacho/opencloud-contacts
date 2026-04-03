@@ -22,18 +22,17 @@ function unescapeVCard(value: string): string {
 }
 
 /**
- * Split a vCard structured value on ';' that are NOT escaped (i.e. not preceded by \).
- * Example: "Doe\\;Smith;Jane" → ["Doe\\;Smith", "Jane"]
- * Each component is then passed through unescapeVCard by the caller.
+ * Split a vCard list value on a delimiter char that is NOT escaped.
+ * Used for ';' (structured values) and ',' (CATEGORIES).
  */
-function splitStructured(value: string): string[] {
+function splitOnUnescaped(value: string, delimiter: string): string[] {
   const parts: string[] = []
   let current = ''
   for (let i = 0; i < value.length; i++) {
     if (value[i] === '\\' && i + 1 < value.length) {
       current += value[i] + value[i + 1]
       i++
-    } else if (value[i] === ';') {
+    } else if (value[i] === delimiter) {
       parts.push(current)
       current = ''
     } else {
@@ -42,6 +41,15 @@ function splitStructured(value: string): string[] {
   }
   parts.push(current)
   return parts
+}
+
+/**
+ * Split a vCard structured value on ';' that are NOT escaped (i.e. not preceded by \).
+ * Example: "Doe\\;Smith;Jane" → ["Doe\\;Smith", "Jane"]
+ * Each component is then passed through unescapeVCard by the caller.
+ */
+function splitStructured(value: string): string[] {
+  return splitOnUnescaped(value, ';')
 }
 
 /**
@@ -173,6 +181,14 @@ export function parseVCard(raw: string, uid: string): Contact {
       case 'BDAY':
         contact.birthday = unescapeVCard(decoded).trim() || undefined
         break
+
+      case 'CATEGORIES': {
+        const cats = splitOnUnescaped(decoded, ',')
+          .map((c) => unescapeVCard(c).trim())
+          .filter(Boolean)
+        if (cats.length) contact.categories = cats
+        break
+      }
 
       case 'URL':
         if (!contact.websites) contact.websites = []
