@@ -208,8 +208,8 @@ export function useCardDAV() {
     return done
   }
 
-  /** Upload a single vCard to the first address book */
-  async function putContact(uid: string, vcardData: string): Promise<void> {
+  /** Upload a single vCard to the first address book; returns the CardDAV href */
+  async function putContact(uid: string, vcardData: string): Promise<string> {
     const appToken = await getAppToken()
     const addressBooks = await discoverAddressBooks(appToken)
     if (!addressBooks.length) throw new Error('No address book found')
@@ -230,6 +230,8 @@ export function useCardDAV() {
     if (!response.ok && response.status !== 201 && response.status !== 204) {
       throw new Error(`PUT failed for ${uid}: ${response.status} ${response.statusText}`)
     }
+
+    return url
   }
 
   /** Update an existing contact (PUT with its known href) */
