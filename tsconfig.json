@@ -1,0 +1,9 @@
+{
+  "extends": "@opencloud-eu/tsconfig",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    }
+  }
+}
