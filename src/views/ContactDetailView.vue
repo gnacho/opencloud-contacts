@@ -46,6 +46,7 @@
               v-if="contact.emails.length"
               :href="`mailto:${contact.emails[0].value}`"
               class="detail-action-btn detail-action-link"
+              style="display:inline-flex;align-items:center;justify-content:center;gap:0.4rem;width:100%;padding:0.5rem 0.75rem;border:1px solid currentColor;border-radius:0.25rem;text-decoration:none;font-size:0.875rem;box-sizing:border-box;"
             >
               <oc-icon name="mail" size="small" />
               {{ $gettext('Email') }}
@@ -54,6 +55,7 @@
               v-if="contact.phones.length"
               :href="`tel:${contact.phones[0].value}`"
               class="detail-action-btn detail-action-link"
+              style="display:inline-flex;align-items:center;justify-content:center;gap:0.4rem;width:100%;padding:0.5rem 0.75rem;border:1px solid currentColor;border-radius:0.25rem;text-decoration:none;font-size:0.875rem;box-sizing:border-box;"
             >
               <oc-icon name="phone" size="small" />
               {{ $gettext('Call') }}
