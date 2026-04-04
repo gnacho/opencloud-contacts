@@ -299,9 +299,11 @@ async function setDefaultGroup() {
 
   const items = updated.map((c) => ({ href: c.href!, vcard: contactToVCard(c) }))
 
-  await updateContactsBatch(items, (done) => { groupDone.value = done })
+  const results = await updateContactsBatch(items, (done) => { groupDone.value = done })
 
-  const byHref = new Map(updated.map((c) => [c.href!, c]))
+  // Only apply updates that succeeded on the server
+  const succeededHrefs = new Set(results.filter((r) => !r.error).map((r) => r.href))
+  const byHref = new Map(updated.filter((c) => succeededHrefs.has(c.href!)).map((c) => [c.href!, c]))
   setContacts(contacts.value.map((c) => byHref.get(c.href!) ?? c))
   settingGroup.value = false
 }
@@ -341,10 +343,14 @@ async function deleteAll() {
       deleteDone.value = done
       deleteTotal.value = total
     })
+    // Only clear the store if the server operation completed without throwing
     setContacts([])
+    showDeleteAll.value = false
+  } catch (err) {
+    // Do not clear local store — server state is uncertain
+    error.value = err instanceof Error ? err.message : String(err)
   } finally {
     deleting.value = false
-    showDeleteAll.value = false
   }
 }
 

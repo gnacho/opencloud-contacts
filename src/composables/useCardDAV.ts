@@ -58,6 +58,16 @@ export function useCardDAV() {
     return `Basic ${btoa(`${getUsername()}:${token}`)}`
   }
 
+  /**
+   * If a response indicates the app token is invalid, evict it from the cache
+   * so the next operation creates a fresh one. Call this after every fetch.
+   */
+  function evictTokenOnAuthFailure(status: number): void {
+    if (status === 401 || status === 403) {
+      sessionStorage.removeItem(APP_TOKEN_KEY)
+    }
+  }
+
   function cardDAVHeaders(appToken: string, extra: Record<string, string> = {}): HeadersInit {
     return {
       Authorization: basicAuthHeader(appToken),
@@ -124,10 +134,7 @@ export function useCardDAV() {
     })
 
     if (!response.ok) {
-      // Clear cached token on auth failure so next call retries
-      if (response.status === 401 || response.status === 403) {
-        sessionStorage.removeItem(APP_TOKEN_KEY)
-      }
+      evictTokenOnAuthFailure(response.status)
       throw new Error(`PROPFIND failed: ${response.status} ${response.statusText}`)
     }
 
@@ -147,6 +154,7 @@ export function useCardDAV() {
     })
 
     if (!response.ok) {
+      evictTokenOnAuthFailure(response.status)
       throw new Error(`REPORT failed for ${bookUrl}: ${response.status} ${response.statusText}`)
     }
 
@@ -199,6 +207,7 @@ export function useCardDAV() {
       headers: { Authorization: basicAuthHeader(appToken) }
     })
     if (!response.ok && response.status !== 404) {
+      evictTokenOnAuthFailure(response.status)
       throw new Error(`DELETE failed for ${url}: ${response.status} ${response.statusText}`)
     }
   }
@@ -217,7 +226,10 @@ export function useCardDAV() {
         headers: cardDAVHeaders(appToken, { Depth: '1' }),
         body: LIST_ITEMS_PROPFIND
       })
-      if (!response.ok) continue
+      if (!response.ok) {
+        evictTokenOnAuthFailure(response.status)
+        throw new Error(`PROPFIND failed for ${bookUrl}: ${response.status} ${response.statusText}`)
+      }
       const xml = await response.text()
       // Extract every href that looks like a vCard file (.vcf)
       const hrefRegex = /<[^:>]*:?href[^>]*>([\s\S]*?)<\/[^:>]*:?href>/gi
@@ -271,6 +283,7 @@ export function useCardDAV() {
     })
 
     if (!response.ok && response.status !== 201 && response.status !== 204) {
+      evictTokenOnAuthFailure(response.status)
       throw new Error(`PUT failed for ${uid}: ${response.status} ${response.statusText}`)
     }
 
@@ -313,6 +326,7 @@ export function useCardDAV() {
             body: vcard
           })
           if (!response.ok && response.status !== 201 && response.status !== 204) {
+            evictTokenOnAuthFailure(response.status)
             throw new Error(`PUT failed: ${response.status} ${response.statusText}`)
           }
           results[index] = { uid, href: url }
@@ -347,6 +361,7 @@ export function useCardDAV() {
             body: vcard
           })
           if (!response.ok && response.status !== 201 && response.status !== 204) {
+            evictTokenOnAuthFailure(response.status)
             throw new Error(`PUT failed: ${response.status} ${response.statusText}`)
           }
           results[index] = { href }
@@ -372,6 +387,7 @@ export function useCardDAV() {
       body: vcardData
     })
     if (!response.ok && response.status !== 201 && response.status !== 204) {
+      evictTokenOnAuthFailure(response.status)
       throw new Error(`PUT failed: ${response.status} ${response.statusText}`)
     }
   }
