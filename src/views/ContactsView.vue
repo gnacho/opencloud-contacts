@@ -173,14 +173,14 @@
             <th
               v-for="col in columns"
               :key="col.key"
-              class="col-sortable"
-              :aria-sort="sortKey === col.key ? (sortAsc ? 'ascending' : 'descending') : 'none'"
-              @click="setSort(col.key)"
+              :class="col.sortable === false ? '' : 'col-sortable'"
+              :aria-sort="col.sortable !== false && sortKey === col.key ? (sortAsc ? 'ascending' : 'descending') : 'none'"
+              @click="col.sortable !== false && setSort(col.key as typeof sortKey.value)"
             >
               <span class="col-label">
                 {{ col.label }}
                 <oc-icon
-                  v-if="sortKey === col.key"
+                  v-if="col.sortable !== false && sortKey === col.key"
                   :name="sortAsc ? 'arrow-up-s' : 'arrow-down-s'"
                   size="small"
                   class="col-sort-icon"
@@ -215,9 +215,14 @@
             <td class="col-name">
               <span class="contact-name">{{ contact.displayName }}</span>
               <span v-if="contact.title" class="contact-title">{{ contact.title }}</span>
+            </td>
+
+            <!-- Groups -->
+            <td class="col-groups">
               <span v-if="contact.categories?.length" class="contact-categories">
                 <span v-for="cat in contact.categories" :key="cat" class="contact-category-chip">{{ cat }}</span>
               </span>
+              <span v-else class="text-muted">–</span>
             </td>
 
             <!-- Organisation -->
@@ -355,6 +360,7 @@ function openContact(contact: Contact) {
 
 const columns = computed(() => [
   { key: 'displayName' as const, label: $gettext('Name') },
+  { key: 'groups' as const, label: $gettext('Groups'), sortable: false },
   { key: 'organization' as const, label: $gettext('Organisation') },
   { key: 'email' as const, label: $gettext('Email') },
   { key: 'phone' as const, label: $gettext('Phone') }
@@ -647,8 +653,8 @@ watch(
   border-radius: 999px;
   font-size: 0.7rem;
   font-weight: 600;
-  background: var(--oc-color-swatch-brand-default);
-  color: #fff;
+  background: var(--oc-color-swatch-brand-default) !important;
+  color: #fff !important;
   line-height: 1.6;
 }
 
