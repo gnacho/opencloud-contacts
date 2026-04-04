@@ -8,7 +8,8 @@
       tabindex="0"
       :aria-label="$gettext('Change photo')"
       @click="fileInput?.click()"
-      @keydown.enter.space.prevent="fileInput?.click()"
+      @keydown.enter.prevent="fileInput?.click()"
+      @keydown.space.prevent="fileInput?.click()"
     >
       <img v-if="modelValue" :src="modelValue" class="avatar-img" />
       <span v-else class="avatar-initials">{{ initials }}</span>
@@ -28,12 +29,12 @@
     </oc-button>
 
     <span v-if="uploadError" class="avatar-error">{{ uploadError }}</span>
-    <span v-else class="avatar-hint">{{ $gettext('Max. 256 × 256 px · PNG, WebP (with transparency) · JPEG, GIF') }}</span>
+    <span v-else class="avatar-hint">{{ $gettext('Max. 256 × 256 px · JPEG, PNG, WebP') }}</span>
 
     <input
       ref="fileInput"
       type="file"
-      accept="image/jpeg,image/png,image/gif,image/webp"
+      accept="image/jpeg,image/png,image/webp"
       class="avatar-file-input"
       @change="onFile"
     />
