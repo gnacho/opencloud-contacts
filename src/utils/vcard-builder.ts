@@ -97,10 +97,11 @@ export function contactToVCard(contact: Contact): string {
 
   // Photo: inline Base64 only — external http URLs are not serialized to
   // prevent re-introducing tracking URLs that the parser already rejects.
+  // Do NOT fold the PHOTO line — some servers reject folded base64 bodies.
   if (contact.photoUrl?.startsWith('data:')) {
     const match = contact.photoUrl.match(/^data:image\/(\w+);base64,(.+)$/)
     if (match) {
-      push(`PHOTO;ENCODING=BASE64;TYPE=${match[1].toUpperCase()}:${match[2]}`)
+      out.push(`PHOTO;ENCODING=BASE64;TYPE=${match[1].toUpperCase()}:${match[2]}`)
     }
   }
 
