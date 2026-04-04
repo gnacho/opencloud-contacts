@@ -76,9 +76,66 @@ describe('parseVCard', () => {
     expect(externalUriContact.photoUrl).toBeUndefined()
   })
 
-  it.todo('unescapes escaped values in structured and text fields')
+  it('unescapes escaped values in structured and text fields', () => {
+    const contact = parseVCard(
+      [
+        'BEGIN:VCARD',
+        'VERSION:3.0',
+        'FN:Doe\\, Jane',
+        'N:Doe\\, Jr;Jane;;;',
+        'NOTE:Line 1\\nLine 2',
+        'ORG:ACME\\; Inc;R&D',
+        'END:VCARD'
+      ].join('\r\n'),
+      'fallback-id'
+    )
 
-  it.todo('parses legacy bare TYPE parameters')
+    expect(contact.displayName).toBe('Doe, Jane')
+    expect(contact.lastName).toBe('Doe, Jr')
+    expect(contact.note).toBe('Line 1\nLine 2')
+    expect(contact.organization).toBe('ACME; Inc')
+    expect(contact.department).toBe('R&D')
+  })
+
+  it('parses legacy bare TYPE parameters', () => {
+    const contact = parseVCard(
+      [
+        'BEGIN:VCARD',
+        'VERSION:3.0',
+        'FN:Jane Doe',
+        'EMAIL;INTERNET;WORK:jane@example.com',
+        'TEL;CELL:+49123',
+        'ADR;HOME:;;Main St;Berlin;;;DE',
+        'END:VCARD'
+      ].join('\r\n'),
+      'fallback-id'
+    )
+
+    expect(contact.emails[0].type).toBe('INTERNET,WORK')
+    expect(contact.phones[0].type).toBe('CELL')
+    expect(contact.addresses[0].type).toBe('HOME')
+  })
+
+  it('parses department from ORG and custom fields', () => {
+    const contact = parseVCard(
+      [
+        'BEGIN:VCARD',
+        'VERSION:3.0',
+        'FN:Jane Doe',
+        'ORG:ACME;Engineering',
+        'X-CUSTOM1:foo',
+        'X-CUSTOM3:bar',
+        'END:VCARD'
+      ].join('\r\n'),
+      'fallback-id'
+    )
+
+    expect(contact.organization).toBe('ACME')
+    expect(contact.department).toBe('Engineering')
+    expect(contact.custom1).toBe('foo')
+    expect(contact.custom3).toBe('bar')
+    expect(contact.custom2).toBeUndefined()
+  })
 })
 
 describe('parseCardDAVReport', () => {
@@ -126,3 +183,4 @@ END:VCARD</cr:address-data>
 describe('parseAddressBookPropfind', () => {
   it.todo('finds namespaced address books in propfind responses')
 })
+

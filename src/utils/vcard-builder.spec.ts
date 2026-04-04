@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Contact } from '../types/contact'
 import { contactToVCard } from './vcard-builder'
+import { parseVCard } from './vcard-parser'
 
 function makeContact(overrides: Partial<Contact> = {}): Contact {
   return {
@@ -81,5 +82,74 @@ describe('contactToVCard', () => {
 
     expect(vcard).toContain('\r\n ')
     expect(vcard).toContain(`NOTE:${'A'.repeat(70)}`)
+  })
+
+  it('serializes department into ORG and custom fields as X-CUSTOMn', () => {
+    const vcard = contactToVCard(
+      makeContact({
+        organization: 'ACME',
+        department: 'Engineering',
+        custom1: 'foo',
+        custom3: 'bar',
+      })
+    )
+
+    expect(vcard).toContain('ORG:ACME;Engineering')
+    expect(vcard).toContain('X-CUSTOM1:foo')
+    expect(vcard).toContain('X-CUSTOM3:bar')
+    expect(vcard).not.toContain('X-CUSTOM2')
+    expect(vcard).not.toContain('X-CUSTOM4')
+  })
+})
+
+describe('contactToVCard + parseVCard roundtrip', () => {
+  it('survives a roundtrip for a complex contact without data loss', () => {
+    const original = makeContact({
+      firstName: 'Jane',
+      lastName: 'Doe',
+      displayName: 'Doe, Jane',
+      nickname: 'JD',
+      organization: 'ACME; Inc',
+      department: 'R&D',
+      title: 'Engineer',
+      emails: [
+        { value: 'jane@work.com', type: 'WORK' },
+        { value: 'jane@home.com', type: 'HOME' },
+      ],
+      phones: [
+        { value: '+49123', type: 'CELL' },
+        { value: '+49456', type: 'WORK' },
+      ],
+      addresses: [
+        { street: 'Main St 1\nApt 2', city: 'Berlin', region: 'BE', postalCode: '10115', country: 'DE', type: 'HOME' },
+      ],
+      websites: ['https://example.com'],
+      birthday: '1990-04-03',
+      categories: ['Alle', 'Friends'],
+      custom1: 'alpha',
+      custom2: 'beta',
+      note: 'Line 1\nLine 2',
+    })
+
+    const vcard = contactToVCard(original)
+    const parsed = parseVCard(vcard, original.uid)
+
+    expect(parsed.displayName).toBe(original.displayName)
+    expect(parsed.firstName).toBe(original.firstName)
+    expect(parsed.lastName).toBe(original.lastName)
+    expect(parsed.nickname).toBe(original.nickname)
+    expect(parsed.organization).toBe(original.organization)
+    expect(parsed.department).toBe(original.department)
+    expect(parsed.title).toBe(original.title)
+    expect(parsed.emails).toEqual(original.emails)
+    expect(parsed.phones).toEqual(original.phones)
+    expect(parsed.addresses[0].city).toBe('Berlin')
+    expect(parsed.addresses[0].street).toContain('Main St 1')
+    expect(parsed.websites).toEqual(original.websites)
+    expect(parsed.birthday).toBe('19900403')
+    expect(parsed.categories).toEqual(original.categories)
+    expect(parsed.custom1).toBe(original.custom1)
+    expect(parsed.custom2).toBe(original.custom2)
+    expect(parsed.note).toBe(original.note)
   })
 })
