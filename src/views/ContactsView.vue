@@ -75,7 +75,7 @@
           class="contacts-delete-all"
           @click="showDeleteAll = true"
         >
-          <oc-icon name="delete" />
+          <oc-icon name="delete-bin" />
         </oc-button>
 
         <!-- Reload -->
