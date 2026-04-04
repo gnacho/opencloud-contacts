@@ -224,8 +224,8 @@ import NewContactDialog from '../components/NewContactDialog.vue'
 import type { Contact } from '../types/contact'
 
 const { $gettext } = useGettext()
-const { contacts, loading, error, loadContacts, updateContactsBatch } = useCardDAV()
-const { setNavigationList, setContacts } = useContactStore()
+const { loading, error, loadContacts, updateContactsBatch } = useCardDAV()
+const { contacts, setNavigationList, setContacts } = useContactStore()
 const router = useRouter()
 
 const settingGroup = ref(false)
@@ -250,7 +250,8 @@ async function setDefaultGroup() {
 
   await updateContactsBatch(items, (done) => { groupDone.value = done })
 
-  await loadContacts()
+  const byHref = new Map(updated.map((c) => [c.href!, c]))
+  setContacts(contacts.value.map((c) => byHref.get(c.href!) ?? c))
   settingGroup.value = false
 }
 
