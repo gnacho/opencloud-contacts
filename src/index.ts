@@ -25,7 +25,7 @@ export default defineWebApplication({
     const routes: RouteRecordRaw[] = [
       {
         path: '/',
-        redirect: `/${appInfo.id}`
+        redirect: { name: 'contacts-list' }
       },
       {
         path: '/list',

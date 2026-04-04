@@ -366,7 +366,7 @@ function onCreated(contact: Contact) {
 
 function openContact(contact: Contact) {
   setNavigationList(filteredContacts.value)
-  router.push(`/contacts-test/contact/${encodeURIComponent(contact.uid)}`)
+  router.push({ name: 'contact-detail', params: { uid: contact.uid } })
 }
 
 const columns = computed(() => [
