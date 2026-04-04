@@ -220,7 +220,7 @@ const navList = computed(() => navigationList.value)
 const currentIndex = computed(() => navList.value.findIndex((c) => c.uid === currentUid.value))
 
 function goBack() {
-  router.push({ name: 'contacts-list' })
+  router.push('/contacts-test/list')
 }
 
 function onSaved(updated: Contact) {
@@ -259,7 +259,7 @@ async function confirmDelete() {
     // Remove from both stores so prev/next navigation stays consistent
     setContacts(contacts.value.filter((x) => x.uid !== c.uid))
     setNavigationList(navigationList.value.filter((x) => x.uid !== c.uid))
-    router.push({ name: 'contacts-list' })
+    router.push('/contacts-test/list')
   } catch (err) {
     window.alert(err instanceof Error ? err.message : String(err))
   } finally {
@@ -272,7 +272,7 @@ function goPrev() {
   if (idx > 0) {
     const target = navList.value[idx - 1]
     currentUid.value = target.uid
-    router.push({ name: 'contact-detail', params: { uid: target.uid } })
+    router.push(`/contacts-test/contact/${encodeURIComponent(target.uid)}`)
   }
 }
 
@@ -281,7 +281,7 @@ function goNext() {
   if (idx < navList.value.length - 1) {
     const target = navList.value[idx + 1]
     currentUid.value = target.uid
-    router.push({ name: 'contact-detail', params: { uid: target.uid } })
+    router.push(`/contacts-test/contact/${encodeURIComponent(target.uid)}`)
   }
 }
 
