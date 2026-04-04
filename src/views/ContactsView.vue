@@ -368,13 +368,17 @@ function avatarStyle(contact: Contact): Record<string, string> {
 
 const userStore = useUserStore()
 
-// Reload contacts whenever the logged-in user changes (login, user switch)
+// Load contacts on first mount if store is empty; reload on user switch
 watch(
   () => userStore.user?.id,
-  (id) => {
-    if (id) {
-      // Clear cached app token so a fresh one is fetched for the new user
+  (id, prevId) => {
+    if (!id) return
+    if (prevId && prevId !== id) {
+      // User switched — clear token and reload
       sessionStorage.removeItem('oc-contacts-app-token')
+      loadContacts()
+    } else if (!prevId && contacts.value.length === 0) {
+      // Initial mount with no data yet
       loadContacts()
     }
   },
