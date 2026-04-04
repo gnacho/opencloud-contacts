@@ -56,18 +56,24 @@ describe('parseVCard', () => {
     expect(contact.birthday).toBe('19900403')
   })
 
-  it('parses photo URIs and inline base64 photos', () => {
-    const uriContact = parseVCard(
-      ['BEGIN:VCARD', 'VERSION:3.0', 'FN:Jane Doe', 'PHOTO;VALUE=URI:https://example.com/avatar.jpg', 'END:VCARD'].join('\r\n'),
-      'fallback-id'
-    )
+  it('accepts inline base64 photos and rejects external photo URIs', () => {
     const base64Contact = parseVCard(
       ['BEGIN:VCARD', 'VERSION:3.0', 'FN:Jane Doe', 'PHOTO;ENCODING=BASE64;TYPE=JPEG:AAABBB', 'END:VCARD'].join('\r\n'),
       'fallback-id'
     )
+    const dataUriContact = parseVCard(
+      ['BEGIN:VCARD', 'VERSION:3.0', 'FN:Jane Doe', 'PHOTO;VALUE=URI:data:image/png;base64,CCCDDD', 'END:VCARD'].join('\r\n'),
+      'fallback-id'
+    )
+    // External http URLs must be discarded to prevent third-party tracking
+    const externalUriContact = parseVCard(
+      ['BEGIN:VCARD', 'VERSION:3.0', 'FN:Jane Doe', 'PHOTO;VALUE=URI:https://example.com/avatar.jpg', 'END:VCARD'].join('\r\n'),
+      'fallback-id'
+    )
 
-    expect(uriContact.photoUrl).toBe('https://example.com/avatar.jpg')
     expect(base64Contact.photoUrl).toBe('data:image/jpeg;base64,AAABBB')
+    expect(dataUriContact.photoUrl).toBe('data:image/png;base64,CCCDDD')
+    expect(externalUriContact.photoUrl).toBeUndefined()
   })
 
   it.todo('unescapes escaped values in structured and text fields')

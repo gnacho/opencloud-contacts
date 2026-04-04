@@ -96,10 +96,10 @@ export function useCardDAV() {
   }
 
   /**
-   * Resolve a server-supplied href to a full URL and verify it is same-origin.
-   * Throws if the resolved URL points to a different origin — prevents a
-   * compromised CardDAV server from redirecting requests (and credentials) to
-   * an attacker-controlled host.
+   * Resolve a server-supplied href to a full URL and verify it is same-origin
+   * and within the /carddav/ path. Throws otherwise — prevents a compromised
+   * CardDAV server from redirecting Authorization headers to internal endpoints
+   * (e.g. /auth-app/tokens) or external hosts.
    */
   function resolveCardDAVUrl(href: string): string {
     const resolved = href.startsWith('http')
@@ -108,6 +108,9 @@ export function useCardDAV() {
     const url = new URL(resolved)
     if (url.origin !== window.location.origin) {
       throw new Error(`Rejected CardDAV URL with unexpected origin: ${url.origin}`)
+    }
+    if (!url.pathname.startsWith('/carddav/')) {
+      throw new Error(`Rejected CardDAV URL outside /carddav/ path: ${url.pathname}`)
     }
     return resolved
   }
