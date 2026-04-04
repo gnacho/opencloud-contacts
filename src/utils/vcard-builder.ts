@@ -64,7 +64,10 @@ export function contactToVCard(contact: Contact): string {
   }
 
   if (contact.organization || contact.department) {
-    push(`ORG:${esc(contact.organization ?? '')};${esc(contact.department ?? '')}`)
+    const orgValue = contact.department
+      ? `${esc(contact.organization ?? '')};${esc(contact.department)}`
+      : esc(contact.organization ?? '')
+    push(`ORG:${orgValue}`)
   }
   if (contact.title)    push(`TITLE:${esc(contact.title)}`)
   if (contact.nickname) push(`NICKNAME:${esc(contact.nickname)}`)
@@ -97,11 +100,10 @@ export function contactToVCard(contact: Contact): string {
 
   // Photo: inline Base64 only — external http URLs are not serialized to
   // prevent re-introducing tracking URLs that the parser already rejects.
-  // Do NOT fold the PHOTO line — some servers reject folded base64 bodies.
   if (contact.photoUrl?.startsWith('data:')) {
     const match = contact.photoUrl.match(/^data:image\/(\w+);base64,(.+)$/)
     if (match) {
-      out.push(`PHOTO;ENCODING=BASE64;TYPE=${match[1].toUpperCase()}:${match[2]}`)
+      push(`PHOTO;ENCODING=b;TYPE=${match[1].toUpperCase()}:${match[2]}`)
     }
   }
 

@@ -70,7 +70,7 @@ describe('contactToVCard', () => {
       })
     )
 
-    expect(vcard).toContain('PHOTO;ENCODING=BASE64;TYPE=PNG:AAABBBCCC')
+    expect(vcard).toContain('PHOTO;ENCODING=b;TYPE=PNG:AAABBBCCC')
   })
 
   it('folds long lines using RFC continuation syntax', () => {
