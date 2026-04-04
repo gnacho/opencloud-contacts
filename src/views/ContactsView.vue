@@ -399,7 +399,8 @@ const filteredContacts = computed(() => {
           c.displayName.toLowerCase().includes(q) ||
           c.organization?.toLowerCase().includes(q) ||
           c.emails.some((e) => e.value.toLowerCase().includes(q)) ||
-          c.phones.some((p) => p.value.toLowerCase().includes(q))
+          c.phones.some((p) => p.value.toLowerCase().includes(q)) ||
+          c.categories?.some((g) => g.toLowerCase().includes(q))
         )
       })
     : [...contacts.value]
