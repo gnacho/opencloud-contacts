@@ -34,8 +34,15 @@ export interface Contact {
   nickname?: string
   /** Organisation */
   organization?: string
+  /** Department (part of ORG field) */
+  department?: string
   /** Job title */
   title?: string
+  /** Custom fields (Thunderbird Benutzerdef. 1–4) */
+  custom1?: string
+  custom2?: string
+  custom3?: string
+  custom4?: string
   /** Email addresses */
   emails: ContactEmail[]
   /** Phone numbers */

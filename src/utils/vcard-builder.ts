@@ -63,9 +63,11 @@ export function contactToVCard(contact: Contact): string {
     push(`TEL${type}:${esc(phone.value)}`)
   }
 
-  if (contact.organization) push(`ORG:${esc(contact.organization)}`)
-  if (contact.title)        push(`TITLE:${esc(contact.title)}`)
-  if (contact.nickname)     push(`NICKNAME:${esc(contact.nickname)}`)
+  if (contact.organization || contact.department) {
+    push(`ORG:${esc(contact.organization ?? '')};${esc(contact.department ?? '')}`)
+  }
+  if (contact.title)    push(`TITLE:${esc(contact.title)}`)
+  if (contact.nickname) push(`NICKNAME:${esc(contact.nickname)}`)
 
   for (const addr of contact.addresses) {
     const type = addr.type ? `;TYPE=${addr.type}` : ''
@@ -85,6 +87,11 @@ export function contactToVCard(contact: Contact): string {
   if (contact.categories?.length) {
     push(`CATEGORIES:${contact.categories.map(esc).join(',')}`)
   }
+
+  if (contact.custom1) push(`X-CUSTOM1:${esc(contact.custom1)}`)
+  if (contact.custom2) push(`X-CUSTOM2:${esc(contact.custom2)}`)
+  if (contact.custom3) push(`X-CUSTOM3:${esc(contact.custom3)}`)
+  if (contact.custom4) push(`X-CUSTOM4:${esc(contact.custom4)}`)
 
   if (contact.note) push(`NOTE:${esc(contact.note)}`)
 

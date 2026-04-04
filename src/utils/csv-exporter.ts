@@ -46,8 +46,17 @@ function phoneByType(phones: Contact['phones'], ...types: string[]): string {
   return phones.find((p) => p.type && t.some((x) => p.type!.toUpperCase().includes(x)))?.value ?? ''
 }
 
+/** Split a street field into [street1, street2] on newline (as stored by the importer). */
+function splitStreet(street?: string): [string, string] {
+  if (!street) return ['', '']
+  const idx = street.search(/\r?\n/)
+  if (idx === -1) return [street, '']
+  return [street.slice(0, idx), street.slice(idx).replace(/^\r?\n/, '')]
+}
+
 function addrByType(addresses: Contact['addresses'], type: string) {
-  return addresses.find((a) => a.type?.toUpperCase() === type.toUpperCase())
+  const t = type.toUpperCase()
+  return addresses.find((a) => a.type?.toUpperCase().split(/[,;]/).map((s) => s.trim()).includes(t))
 }
 
 function contactToRow(c: Contact): string[] {
@@ -77,27 +86,30 @@ function contactToRow(c: Contact): string[] {
     fax,
     pager,
     mobile,
-    (home as any).street ?? '',
-    '',                          // Privat: Adresse 2 — not stored separately
+    splitStreet((home as any).street)[0],
+    splitStreet((home as any).street)[1],
     (home as any).city ?? '',
     (home as any).region ?? '',
     (home as any).postalCode ?? '',
     (home as any).country ?? '',
-    (work as any).street ?? '',
-    '',                          // Dienstlich: Adresse 2
+    splitStreet((work as any).street)[0],
+    splitStreet((work as any).street)[1],
     (work as any).city ?? '',
     (work as any).region ?? '',
     (work as any).postalCode ?? '',
     (work as any).country ?? '',
     c.title ?? '',
-    '',                          // Abteilung — not stored
+    c.department ?? '',
     c.organization ?? '',
     c.websites?.[0] ?? '',
     c.websites?.[1] ?? '',
     bday.year,
     bday.month,
     bday.day,
-    '', '', '', '',              // Benutzerdef. 1–4
+    c.custom1 ?? '',
+    c.custom2 ?? '',
+    c.custom3 ?? '',
+    c.custom4 ?? '',
     c.note ?? '',
   ]
 }

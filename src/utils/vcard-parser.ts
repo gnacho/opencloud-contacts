@@ -161,10 +161,13 @@ export function parseVCard(raw: string, uid: string): Contact {
         contact.uid = unescapeVCard(decoded).trim() || uid
         break
 
-      case 'ORG':
-        // ORG can be "Company;Department" — take first component
-        contact.organization = unescapeVCard(splitStructured(decoded)[0]).trim() || undefined
+      case 'ORG': {
+        // ORG: "Company;Department[;...]"
+        const orgParts = splitStructured(decoded)
+        contact.organization = unescapeVCard(orgParts[0]).trim() || undefined
+        if (orgParts[1]) contact.department = unescapeVCard(orgParts[1]).trim() || undefined
         break
+      }
 
       case 'TITLE':
         contact.title = unescapeVCard(decoded).trim() || undefined
@@ -244,6 +247,11 @@ export function parseVCard(raw: string, uid: string): Contact {
         }
         break
       }
+
+      case 'X-CUSTOM1': contact.custom1 = unescapeVCard(decoded).trim() || undefined; break
+      case 'X-CUSTOM2': contact.custom2 = unescapeVCard(decoded).trim() || undefined; break
+      case 'X-CUSTOM3': contact.custom3 = unescapeVCard(decoded).trim() || undefined; break
+      case 'X-CUSTOM4': contact.custom4 = unescapeVCard(decoded).trim() || undefined; break
     }
   }
 
