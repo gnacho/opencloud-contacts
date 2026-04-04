@@ -138,8 +138,18 @@ function normalizeHeader(s: string): string {
   return s.replace(/^\uFEFF/, '').trim()
 }
 
+/**
+ * Detect whether a CSV header line uses ',' or ';' as separator.
+ * Thunderbird on German locales exports with ';'.
+ */
+function detectSeparator(headerLine: string): ',' | ';' {
+  const commas = (headerLine.match(/,/g) ?? []).length
+  const semis = (headerLine.match(/;/g) ?? []).length
+  return semis > commas ? ';' : ','
+}
+
 /** RFC 4180 compliant CSV parser — handles quoted multiline fields */
-function parseCSV(text: string): string[][] {
+function parseCSV(text: string, separator: ',' | ';'): string[][] {
   const records: string[][] = []
   let fields: string[] = []
   let current = ''
@@ -161,7 +171,7 @@ function parseCSV(text: string): string[][] {
     } else {
       if (ch === '"') {
         inQuotes = true
-      } else if (ch === ',') {
+      } else if (ch === separator) {
         fields.push(current)
         current = ''
       } else if (ch === '\r' && text[i + 1] === '\n') {
@@ -207,7 +217,10 @@ function emptyContact(): CsvContact {
 }
 
 export function parseThunderbirdCSV(csvText: string): CsvContact[] {
-  const records = parseCSV(csvText)
+  // Detect separator from first non-empty line (before full parse)
+  const firstLine = csvText.slice(0, csvText.search(/\r?\n/))
+  const separator = detectSeparator(firstLine)
+  const records = parseCSV(csvText, separator)
   if (records.length < 2) return []
 
   // Build header → column index map; strip BOM from first cell
@@ -298,9 +311,12 @@ export function csvContactToVCard(c: CsvContact, defaultCategory?: string): { ui
   if (c.telWork) push(`TEL;TYPE=WORK:${escapeVCard(c.telWork)}`)
   if (c.telHome) push(`TEL;TYPE=HOME:${escapeVCard(c.telHome)}`)
   if (c.fax)     push(`TEL;TYPE=FAX:${escapeVCard(c.fax)}`)
+  if (c.pager)   push(`TEL;TYPE=PAGER:${escapeVCard(c.pager)}`)
 
-  if (c.organization) push(`ORG:${escapeVCard(c.organization)}`)
-  if (c.title)        push(`TITLE:${escapeVCard(c.title)}`)
+  if (c.organization || c.department) {
+    push(`ORG:${escapeVCard(c.organization)};${escapeVCard(c.department)}`)
+  }
+  if (c.title) push(`TITLE:${escapeVCard(c.title)}`)
 
   if (c.homeStreet || c.homeCity || c.homeZip || c.homeCountry) {
     const street = escapeVCard([c.homeStreet, c.homeStreet2].filter(Boolean).join('\n'))
@@ -322,6 +338,11 @@ export function csvContactToVCard(c: CsvContact, defaultCategory?: string): { ui
 
   if (c.website1) push(`URL:${escapeVCard(c.website1)}`)
   if (c.website2) push(`URL:${escapeVCard(c.website2)}`)
+
+  if (c.custom1) push(`X-CUSTOM1:${escapeVCard(c.custom1)}`)
+  if (c.custom2) push(`X-CUSTOM2:${escapeVCard(c.custom2)}`)
+  if (c.custom3) push(`X-CUSTOM3:${escapeVCard(c.custom3)}`)
+  if (c.custom4) push(`X-CUSTOM4:${escapeVCard(c.custom4)}`)
 
   if (defaultCategory) push(`CATEGORIES:${escapeVCard(defaultCategory)}`)
 
