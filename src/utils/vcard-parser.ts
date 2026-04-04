@@ -232,13 +232,15 @@ export function parseVCard(raw: string, uid: string): Contact {
 
       case 'PHOTO': {
         const valueType = params['VALUE']?.toUpperCase()
-        if (valueType === 'URI' || valueType === 'URL') {
-          contact.photoUrl = decoded.trim()
-        } else if (encoding === 'B' || encoding === 'BASE64') {
+        if (encoding === 'B' || encoding === 'BASE64') {
+          // Inline base64 photo — safe, no external request
           const mediaType = params['TYPE']?.toLowerCase() || 'jpeg'
           contact.photoUrl = decodeBase64Photo(decoded, `image/${mediaType}`)
-        } else if (decoded.startsWith('http') || decoded.startsWith('data:')) {
+        } else if (decoded.trim().startsWith('data:')) {
+          // Inline data URI — safe, no external request
           contact.photoUrl = decoded.trim()
+        } else if (valueType === 'URI' || valueType === 'URL' || decoded.startsWith('http')) {
+          // External URL — discard to prevent third-party tracking requests
         }
         break
       }

@@ -95,6 +95,23 @@ export function useCardDAV() {
     return token
   }
 
+  /**
+   * Resolve a server-supplied href to a full URL and verify it is same-origin.
+   * Throws if the resolved URL points to a different origin — prevents a
+   * compromised CardDAV server from redirecting requests (and credentials) to
+   * an attacker-controlled host.
+   */
+  function resolveCardDAVUrl(href: string): string {
+    const resolved = href.startsWith('http')
+      ? href
+      : `${window.location.origin}${href}`
+    const url = new URL(resolved)
+    if (url.origin !== window.location.origin) {
+      throw new Error(`Rejected CardDAV URL with unexpected origin: ${url.origin}`)
+    }
+    return resolved
+  }
+
   async function discoverAddressBooks(appToken: string): Promise<string[]> {
     const url = getUserPath()
     const response = await fetch(url, {
@@ -116,10 +133,7 @@ export function useCardDAV() {
 
     if (books.length === 0) return [url]
 
-    return books.map((href) => {
-      if (href.startsWith('http')) return href
-      return `${window.location.origin}${href}`
-    })
+    return books.map((href) => resolveCardDAVUrl(href))
   }
 
   async function fetchContactsFromBook(bookUrl: string, appToken: string): Promise<Contact[]> {
@@ -139,7 +153,7 @@ export function useCardDAV() {
     return entries.map(({ href, vcardRaw }) => {
       const uid = href.split('/').filter(Boolean).pop() ?? href
       const contact = parseVCard(vcardRaw, uid)
-      contact.href = href.startsWith('http') ? href : `${window.location.origin}${href}`
+      contact.href = resolveCardDAVUrl(href)
       return contact
     })
   }
@@ -208,7 +222,11 @@ export function useCardDAV() {
       while ((m = hrefRegex.exec(xml)) !== null) {
         const href = m[1].trim()
         if (href.endsWith('.vcf')) {
-          allHrefs.push(href.startsWith('http') ? href : `${window.location.origin}${href}`)
+          try {
+            allHrefs.push(resolveCardDAVUrl(href))
+          } catch {
+            // Skip hrefs pointing to unexpected origins
+          }
         }
       }
     }
