@@ -54,15 +54,27 @@
         </oc-button>
 
         <!-- Set default group -->
-        <oc-button
-          v-if="contactsWithoutGroup.length && !settingGroup"
-          :aria-label="$gettext('Set group for contacts without group')"
-          appearance="outline"
-          @click="setDefaultGroup"
-        >
-          <oc-icon name="group" size="small" />
-          {{ $gettext('Set group \'Alle\' (%{n})', { n: contactsWithoutGroup.length }) }}
-        </oc-button>
+        <template v-if="contactsWithoutGroup.length && !settingGroup">
+          <datalist id="known-groups-bulk">
+            <option v-for="g in knownGroups" :key="g" :value="g" />
+          </datalist>
+          <input
+            v-model="bulkGroup"
+            type="text"
+            list="known-groups-bulk"
+            class="oc-text-input bulk-group-input"
+            :placeholder="$gettext('Group name')"
+          />
+          <oc-button
+            :aria-label="$gettext('Set group for contacts without group')"
+            appearance="outline"
+            :disabled="!bulkGroup.trim()"
+            @click="setDefaultGroup"
+          >
+            <oc-icon name="group" size="small" />
+            {{ $gettext('Set group (%{n})', { n: contactsWithoutGroup.length }) }}
+          </oc-button>
+        </template>
         <span v-if="settingGroup" class="group-progress">
           {{ $gettext('Updating…') }} {{ groupDone }} / {{ groupTotal }}
         </span>
@@ -258,12 +270,13 @@ import type { Contact } from '../types/contact'
 
 const { $gettext } = useGettext()
 const { loading, error, loadContacts, updateContactsBatch, deleteAllContacts } = useCardDAV()
-const { contacts, setNavigationList, setContacts } = useContactStore()
+const { contacts, knownGroups, setNavigationList, setContacts } = useContactStore()
 const router = useRouter()
 
 const settingGroup = ref(false)
 const groupDone = ref(0)
 const groupTotal = ref(0)
+const bulkGroup = ref('Alle')
 
 const contactsWithoutGroup = computed(() =>
   contacts.value.filter((c) => !c.categories?.length && c.href)
@@ -276,7 +289,7 @@ async function setDefaultGroup() {
 
   const updated = contactsWithoutGroup.value.map((c) => ({
     ...c,
-    categories: ['Alle']
+    categories: [bulkGroup.value.trim()]
   }))
 
   const items = updated.map((c) => ({ href: c.href!, vcard: contactToVCard(c) }))
@@ -669,6 +682,12 @@ watch(
   background: var(--oc-color-background-highlight);
   color: var(--oc-color-text-muted);
   vertical-align: middle;
+}
+
+.bulk-group-input {
+  width: 10rem;
+  height: 2rem;
+  font-size: 0.875rem;
 }
 
 .delete-progress {

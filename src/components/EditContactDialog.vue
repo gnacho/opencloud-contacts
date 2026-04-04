@@ -129,8 +129,11 @@
         <!-- Groups -->
         <fieldset class="edit-section">
           <legend class="edit-section-title">{{ $gettext('Groups') }}</legend>
+          <datalist id="known-groups-edit">
+            <option v-for="g in knownGroups" :key="g" :value="g" />
+          </datalist>
           <div v-for="(cat, i) in form.categories" :key="i" class="edit-row edit-row-dynamic" style="margin-top: 0.5rem">
-            <input v-model="form.categories[i]" type="text" class="oc-text-input edit-grow" :placeholder="$gettext('Group name')" />
+            <input v-model="form.categories[i]" type="text" list="known-groups-edit" class="oc-text-input edit-grow" :placeholder="$gettext('Group name')" />
             <oc-button appearance="raw" class="edit-remove-btn" @click="form.categories.splice(i, 1)">
               <oc-icon name="close" size="small" />
             </oc-button>
@@ -184,7 +187,7 @@ const emit = defineEmits<{ (e: 'close'): void; (e: 'saved', contact: Contact): v
 
 const { $gettext } = useGettext()
 const { updateContact } = useCardDAV()
-const { contacts, setContacts } = useContactStore()
+const { contacts, knownGroups, setContacts } = useContactStore()
 
 const saving = ref(false)
 const saveError = ref('')

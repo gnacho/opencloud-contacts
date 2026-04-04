@@ -10,10 +10,17 @@
     <template #content>
       <!-- Import options (always visible before import) -->
       <div v-if="!importing" class="import-options">
-        <label class="import-option-label">
-          <input v-model="setDefaultGroup" type="checkbox" />
-          {{ $gettext("Set group 'Alle' for contacts without a group") }}
-        </label>
+        <label class="import-option-label">{{ $gettext('Default group for contacts without a group') }}</label>
+        <datalist id="known-groups-import">
+          <option v-for="g in knownGroups" :key="g" :value="g" />
+        </datalist>
+        <input
+          v-model="defaultGroup"
+          type="text"
+          list="known-groups-import"
+          class="oc-text-input"
+          :placeholder="$gettext('Group name (leave empty to skip)')"
+        />
       </div>
 
       <!-- File picker -->
@@ -86,11 +93,13 @@ import { ref, computed } from 'vue'
 import { useGettext } from 'vue3-gettext'
 import { parseThunderbirdCSV, csvContactToVCard, type CsvContact } from '../utils/csv-importer'
 import { useCardDAV } from '../composables/useCardDAV'
+import { useContactStore } from '../composables/useContactStore'
 
 const emit = defineEmits<{ (e: 'close'): void; (e: 'done'): void }>()
 
 const { $gettext } = useGettext()
 const { putContactsBatch } = useCardDAV()
+const { knownGroups } = useContactStore()
 
 const fileInput = ref<HTMLInputElement | null>(null)
 const parsedContacts = ref<CsvContact[]>([])
@@ -98,7 +107,7 @@ const importing = ref(false)
 const done = ref(false)
 const doneCount = ref(0)
 const errors = ref<string[]>([])
-const setDefaultGroup = ref(true)
+const defaultGroup = ref('Alle')
 
 const progressPercent = computed(() =>
   parsedContacts.value.length ? Math.round((doneCount.value / parsedContacts.value.length) * 100) : 0
@@ -153,8 +162,9 @@ async function startImport() {
   errors.value = []
 
   try {
+    const group = defaultGroup.value.trim() || undefined
     const items = parsedContacts.value.map((csvContact) =>
-      csvContactToVCard(csvContact, setDefaultGroup.value ? 'Alle' : undefined)
+      csvContactToVCard(csvContact, group)
     )
 
     const results = await putContactsBatch(items, (done) => {
