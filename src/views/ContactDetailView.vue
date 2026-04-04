@@ -182,8 +182,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { useRouter } from '@opencloud-eu/web-pkg'
+import { ref, computed, watch } from 'vue'
+import { useRouter, useRoute } from '@opencloud-eu/web-pkg'
 import { useGettext } from 'vue3-gettext'
 import { useContactStore } from '../composables/useContactStore'
 import { useCardDAV } from '../composables/useCardDAV'
@@ -193,19 +193,25 @@ import type { Contact } from '../types/contact'
 
 const { $gettext } = useGettext()
 const router = useRouter()
-const { navigationList, contacts, findByUid, setContacts } = useContactStore()
+const route = useRoute()
+const { navigationList, contacts, findByUid, setContacts, setNavigationList } = useContactStore()
 const { deleteContactEntry } = useCardDAV()
 
 const showEdit = ref(false)
 const deleting = ref(false)
 
-function extractUid(): string {
-  const parts = window.location.pathname.split('/contact/')
+function uidFromPath(path: string): string {
+  const parts = path.split('/contact/')
   return parts.length > 1 ? decodeURIComponent(parts[1].split('/')[0]) : ''
 }
 
-// Use a writable ref so navigation updates trigger reactivity
-const currentUid = ref(extractUid())
+// Keep currentUid in sync with the route so browser navigation always
+// shows the correct contact and edit/delete operate on the right record.
+const currentUid = ref(uidFromPath(window.location.pathname))
+watch(() => route.path, (path) => {
+  const uid = uidFromPath(path)
+  if (uid) currentUid.value = uid
+})
 
 const contact = computed<Contact | undefined>(() => findByUid(currentUid.value))
 
@@ -219,7 +225,8 @@ function goBack() {
 
 function onSaved(updated: Contact) {
   showEdit.value = false
-  // currentUid stays the same, contact computed will re-read from store
+  // Ensure currentUid still matches the saved contact (UID is stable)
+  currentUid.value = updated.uid
 }
 
 function openHref(url: string) {
@@ -249,8 +256,9 @@ async function confirmDelete() {
   try {
     if (!c.href) throw new Error('No CardDAV URL')
     await deleteContactEntry(c.href)
-    // Remove from store
+    // Remove from both stores so prev/next navigation stays consistent
     setContacts(contacts.value.filter((x) => x.uid !== c.uid))
+    setNavigationList(navigationList.value.filter((x) => x.uid !== c.uid))
     router.push('/contacts-test/list')
   } catch (err) {
     window.alert(err instanceof Error ? err.message : String(err))

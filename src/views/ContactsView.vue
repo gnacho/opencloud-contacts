@@ -135,6 +135,7 @@
           </div>
           <p class="progress-label">{{ deleteDone }} / {{ deleteTotal }}</p>
         </div>
+        <p v-if="deleteError" class="delete-error">{{ deleteError }}</p>
       </template>
     </oc-modal>
 
@@ -292,20 +293,22 @@ async function setDefaultGroup() {
   groupDone.value = 0
   groupTotal.value = contactsWithoutGroup.value.length
 
-  const updated = contactsWithoutGroup.value.map((c) => ({
-    ...c,
-    categories: [bulkGroup.value.trim()]
-  }))
+  try {
+    const updated = contactsWithoutGroup.value.map((c) => ({
+      ...c,
+      categories: [bulkGroup.value.trim()]
+    }))
 
-  const items = updated.map((c) => ({ href: c.href!, vcard: contactToVCard(c) }))
+    const items = updated.map((c) => ({ href: c.href!, vcard: contactToVCard(c) }))
+    const results = await updateContactsBatch(items, (done) => { groupDone.value = done })
 
-  const results = await updateContactsBatch(items, (done) => { groupDone.value = done })
-
-  // Only apply updates that succeeded on the server
-  const succeededHrefs = new Set(results.filter((r) => !r.error).map((r) => r.href))
-  const byHref = new Map(updated.filter((c) => succeededHrefs.has(c.href!)).map((c) => [c.href!, c]))
-  setContacts(contacts.value.map((c) => byHref.get(c.href!) ?? c))
-  settingGroup.value = false
+    // Only apply updates that succeeded on the server
+    const succeededHrefs = new Set(results.filter((r) => !r.error).map((r) => r.href))
+    const byHref = new Map(updated.filter((c) => succeededHrefs.has(c.href!)).map((c) => [c.href!, c]))
+    setContacts(contacts.value.map((c) => byHref.get(c.href!) ?? c))
+  } finally {
+    settingGroup.value = false
+  }
 }
 
 const searchQuery = ref('')
@@ -317,6 +320,7 @@ const showDeleteAll = ref(false)
 const deleting = ref(false)
 const deleteDone = ref(0)
 const deleteTotal = ref(0)
+const deleteError = ref<string | null>(null)
 
 function exportContacts() {
   const csv = exportContactsToCSV(contacts.value)
@@ -338,6 +342,7 @@ async function deleteAll() {
   deleting.value = true
   deleteDone.value = 0
   deleteTotal.value = 0
+  deleteError.value = null
   try {
     await deleteAllContacts((done, total) => {
       deleteDone.value = done
@@ -348,7 +353,7 @@ async function deleteAll() {
     showDeleteAll.value = false
   } catch (err) {
     // Do not clear local store — server state is uncertain
-    error.value = err instanceof Error ? err.message : String(err)
+    deleteError.value = err instanceof Error ? err.message : String(err)
   } finally {
     deleting.value = false
   }
@@ -453,7 +458,8 @@ watch(
   (id, prevId) => {
     if (!id) return
     if (prevId && prevId !== id) {
-      // User switched — clear token and reload
+      // User switched — clear store and token immediately, then reload
+      setContacts([])
       sessionStorage.removeItem('oc-contacts-app-token')
       loadContacts()
     } else if (!prevId && contacts.value.length === 0) {
@@ -705,6 +711,12 @@ watch(
 
 .delete-progress {
   margin-top: 1rem;
+}
+
+.delete-error {
+  margin-top: 0.75rem;
+  color: var(--oc-color-swatch-danger-default);
+  font-size: 0.875rem;
 }
 
 .progress-bar {
