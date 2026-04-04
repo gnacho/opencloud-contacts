@@ -67,6 +67,17 @@
           {{ $gettext('Updating…') }} {{ groupDone }} / {{ groupTotal }}
         </span>
 
+        <!-- Delete all -->
+        <oc-button
+          v-if="contacts.length"
+          :aria-label="$gettext('Delete all contacts')"
+          appearance="raw"
+          class="contacts-delete-all"
+          @click="showDeleteAll = true"
+        >
+          <oc-icon name="delete" />
+        </oc-button>
+
         <!-- Reload -->
         <oc-button
           :aria-label="$gettext('Reload contacts')"
@@ -92,6 +103,28 @@
       @close="showImport = false"
       @done="onImportDone"
     />
+
+    <!-- Delete all confirmation dialog -->
+    <oc-modal
+      v-if="showDeleteAll"
+      :title="$gettext('Delete all contacts')"
+      :button-cancel-text="$gettext('Cancel')"
+      :button-confirm-text="deleting ? $gettext('Deleting…') : $gettext('Delete all')"
+      :button-confirm-disabled="deleting"
+      variation="danger"
+      @cancel="showDeleteAll = false"
+      @confirm="deleteAll"
+    >
+      <template #content>
+        <p>{{ $gettext('This will permanently delete all %{n} contacts. This cannot be undone.', { n: contacts.length }) }}</p>
+        <div v-if="deleting" class="delete-progress">
+          <div class="progress-bar">
+            <div class="progress-fill" :style="{ width: deleteTotal ? (deleteDone / deleteTotal * 100) + '%' : '0%' }" />
+          </div>
+          <p class="progress-label">{{ deleteDone }} / {{ deleteTotal }}</p>
+        </div>
+      </template>
+    </oc-modal>
 
     <!-- Error -->
     <oc-info-drop
@@ -224,7 +257,7 @@ import NewContactDialog from '../components/NewContactDialog.vue'
 import type { Contact } from '../types/contact'
 
 const { $gettext } = useGettext()
-const { loading, error, loadContacts, updateContactsBatch } = useCardDAV()
+const { loading, error, loadContacts, updateContactsBatch, deleteAllContacts } = useCardDAV()
 const { contacts, setNavigationList, setContacts } = useContactStore()
 const router = useRouter()
 
@@ -260,6 +293,10 @@ const sortKey = ref<'displayName' | 'organization' | 'email' | 'phone'>('display
 const sortAsc = ref(true)
 const showImport = ref(false)
 const showNew = ref(false)
+const showDeleteAll = ref(false)
+const deleting = ref(false)
+const deleteDone = ref(0)
+const deleteTotal = ref(0)
 
 function exportContacts() {
   const csv = exportContactsToCSV(contacts.value)
@@ -275,6 +312,22 @@ function exportContacts() {
 async function onImportDone() {
   showImport.value = false
   await loadContacts()
+}
+
+async function deleteAll() {
+  deleting.value = true
+  deleteDone.value = 0
+  deleteTotal.value = 0
+  try {
+    await deleteAllContacts((done, total) => {
+      deleteDone.value = done
+      deleteTotal.value = total
+    })
+    setContacts([])
+  } finally {
+    deleting.value = false
+    showDeleteAll.value = false
+  }
 }
 
 function onCreated(contact: Contact) {
@@ -616,5 +669,29 @@ watch(
   background: var(--oc-color-background-highlight);
   color: var(--oc-color-text-muted);
   vertical-align: middle;
+}
+
+.delete-progress {
+  margin-top: 1rem;
+}
+
+.progress-bar {
+  height: 6px;
+  background: var(--oc-color-border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--oc-color-swatch-danger-default);
+  transition: width 0.2s;
+}
+
+.progress-label {
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--oc-color-text-muted);
+  margin: 0.5rem 0 0;
 }
 </style>

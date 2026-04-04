@@ -11,10 +11,6 @@
       <!-- Import options (always visible before import) -->
       <div v-if="!importing" class="import-options">
         <label class="import-option-label">
-          <input v-model="replaceAll" type="checkbox" />
-          {{ $gettext('Delete all existing contacts before import') }}
-        </label>
-        <label class="import-option-label">
           <input v-model="setDefaultGroup" type="checkbox" />
           {{ $gettext("Set group 'Alle' for contacts without a group") }}
         </label>
@@ -48,14 +44,6 @@
           <ul>
             <li v-for="(e, i) in errors" :key="i">{{ e }}</li>
           </ul>
-        </div>
-
-        <!-- Delete progress -->
-        <div v-if="importing && deleting" class="import-progress">
-          <p class="progress-label">{{ $gettext('Deleting existing contacts…') }} {{ deleteCount }} / {{ deleteTotal }}</p>
-          <div class="progress-bar">
-            <div class="progress-fill" :style="{ width: deleteTotal ? (deleteCount / deleteTotal * 100) + '%' : '0%' }" />
-          </div>
         </div>
 
         <!-- Preview table -->
@@ -102,7 +90,7 @@ import { useCardDAV } from '../composables/useCardDAV'
 const emit = defineEmits<{ (e: 'close'): void; (e: 'done'): void }>()
 
 const { $gettext } = useGettext()
-const { putContactsBatch, deleteAllContacts } = useCardDAV()
+const { putContactsBatch } = useCardDAV()
 
 const fileInput = ref<HTMLInputElement | null>(null)
 const parsedContacts = ref<CsvContact[]>([])
@@ -110,11 +98,7 @@ const importing = ref(false)
 const done = ref(false)
 const doneCount = ref(0)
 const errors = ref<string[]>([])
-const replaceAll = ref(false)
 const setDefaultGroup = ref(true)
-const deleting = ref(false)
-const deleteCount = ref(0)
-const deleteTotal = ref(0)
 
 const progressPercent = computed(() =>
   parsedContacts.value.length ? Math.round((doneCount.value / parsedContacts.value.length) * 100) : 0
@@ -167,23 +151,8 @@ async function startImport() {
   done.value = false
   doneCount.value = 0
   errors.value = []
-  deleting.value = false
-  deleteCount.value = 0
-  deleteTotal.value = 0
 
   try {
-    if (replaceAll.value) {
-      deleting.value = true
-      try {
-        await deleteAllContacts((n, total) => {
-          deleteCount.value = n
-          deleteTotal.value = total
-        })
-      } finally {
-        deleting.value = false
-      }
-    }
-
     const items = parsedContacts.value.map((csvContact) =>
       csvContactToVCard(csvContact, setDefaultGroup.value ? 'Alle' : undefined)
     )
