@@ -225,8 +225,8 @@ async function save() {
   const displayName =
     form.displayName.trim() ||
     [form.firstName, form.lastName].filter(Boolean).join(' ') ||
-    form.organization ||
-    form.emails[0]?.value ||
+    form.organization.trim() ||
+    form.emails[0]?.value.trim() ||
     'Unknown'
 
   const updated: Contact = {
