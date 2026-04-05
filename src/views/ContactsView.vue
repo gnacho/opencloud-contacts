@@ -262,11 +262,16 @@
       </table>
     </div>
 
+    <footer class="contacts-footer">
+      © 2026 <a href="https://linux-nerds.org" target="_blank" rel="noopener noreferrer">linux-nerds.org</a> · Contacts v{{ appVersion }}
+    </footer>
+
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
+import { version as appVersion } from '../../package.json'
 import { useRouter, useUserStore, useAuthStore } from '@opencloud-eu/web-pkg'
 import { useGettext } from 'vue3-gettext'
 import { useCardDAV } from '../composables/useCardDAV'
@@ -762,5 +767,22 @@ watch(
   font-size: 0.85rem;
   color: var(--oc-color-text-muted);
   margin: 0.5rem 0 0;
+}
+
+.contacts-footer {
+  margin-top: auto;
+  padding: 0.75rem 1rem;
+  font-size: 0.75rem;
+  color: var(--oc-color-text-muted);
+  text-align: center;
+}
+
+.contacts-footer a {
+  color: var(--oc-color-text-muted);
+  text-decoration: none;
+}
+
+.contacts-footer a:hover {
+  text-decoration: underline;
 }
 </style>
