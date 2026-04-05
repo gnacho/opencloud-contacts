@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseCardDAVReport, parseVCard } from './vcard-parser'
+import { parseAddressBookPropfind, parseCardDAVReport, parseVCard } from './vcard-parser'
 
 describe('parseVCard', () => {
   it('parses a minimal contact', () => {
@@ -197,6 +197,29 @@ END:VCARD</cr:address-data>
 })
 
 describe('parseAddressBookPropfind', () => {
-  it.todo('finds namespaced address books in propfind responses')
+  it('finds namespaced address books in propfind responses', () => {
+    const xml = `
+      <d:multistatus xmlns:d="DAV:" xmlns:card="urn:ietf:params:xml:ns:carddav">
+        <d:response>
+          <d:href>/carddav/users/frank/contacts/</d:href>
+          <d:propstat>
+            <d:prop>
+              <d:resourcetype><d:collection/><card:addressbook/></d:resourcetype>
+            </d:prop>
+          </d:propstat>
+        </d:response>
+        <d:response>
+          <d:href>/carddav/users/frank/</d:href>
+          <d:propstat>
+            <d:prop>
+              <d:resourcetype><d:collection/></d:resourcetype>
+            </d:prop>
+          </d:propstat>
+        </d:response>
+      </d:multistatus>`
+
+    const result = parseAddressBookPropfind(xml)
+    expect(result).toEqual(['/carddav/users/frank/contacts/'])
+  })
 })
 
