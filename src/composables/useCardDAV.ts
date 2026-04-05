@@ -231,17 +231,20 @@ export function useCardDAV() {
         throw new Error(`PROPFIND failed for ${bookUrl}: ${response.status} ${response.statusText}`)
       }
       const xml = await response.text()
-      // Extract every href that looks like a vCard file (.vcf)
+      // Extract every href that is a resource (not a collection).
+      // Collections end with '/' or resolve to the address book URL itself.
+      const bookPath = new URL(bookUrl).pathname
       const hrefRegex = /<[^:>]*:?href[^>]*>([\s\S]*?)<\/[^:>]*:?href>/gi
       let m: RegExpExecArray | null
       while ((m = hrefRegex.exec(xml)) !== null) {
         const href = m[1].trim()
-        if (href.endsWith('.vcf')) {
-          try {
-            allHrefs.push(resolveCardDAVUrl(href))
-          } catch {
-            // Skip hrefs pointing to unexpected origins
-          }
+        if (href.endsWith('/')) continue
+        const path = href.startsWith('http') ? new URL(href).pathname : href
+        if (path === bookPath) continue
+        try {
+          allHrefs.push(resolveCardDAVUrl(href))
+        } catch {
+          // Skip hrefs pointing to unexpected origins
         }
       }
     }
