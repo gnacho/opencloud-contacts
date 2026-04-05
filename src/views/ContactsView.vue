@@ -267,7 +267,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRouter, useUserStore } from '@opencloud-eu/web-pkg'
+import { useRouter, useUserStore, useAuthStore } from '@opencloud-eu/web-pkg'
 import { useGettext } from 'vue3-gettext'
 import { useCardDAV } from '../composables/useCardDAV'
 import { useContactStore } from '../composables/useContactStore'
@@ -461,24 +461,29 @@ function avatarStyle(contact: Contact): Record<string, string> {
 }
 
 const userStore = useUserStore()
+const authStore = useAuthStore()
 
-// Load contacts on first mount if store is empty; reload on user switch
+// Load contacts when both user ID and access token are available.
+// Watching both prevents a race where userStore.user?.id is set before
+// authStore.accessToken is ready for the new user.
 watch(
-  () => userStore.user?.id,
-  (id, prevId) => {
-    if (!id) {
+  () => ({ userId: userStore.user?.id, token: authStore.accessToken }),
+  ({ userId, token }, prev) => {
+    const prevUserId = prev?.userId
+    if (!userId) {
       // Logout — clear immediately so stale data is never shown on re-login
       setContacts([])
       sessionStorage.removeItem('oc-contacts-app-token')
       return
     }
-    if (prevId && prevId !== id) {
+    if (!token) return // wait for access token before loading
+    if (prevUserId && prevUserId !== userId) {
       // User switched — clear store and token immediately, then reload
       setContacts([])
       sessionStorage.removeItem('oc-contacts-app-token')
       loadContacts()
-    } else if (!prevId) {
-      // Initial mount or re-login after logout — always reload
+    } else if (!prevUserId || (!prev?.token && token)) {
+      // Initial mount, re-login after logout, or token just became available
       loadContacts()
     }
   },
