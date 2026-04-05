@@ -121,6 +121,7 @@ function loadFile(file: File) {
   const reader = new FileReader()
   reader.onerror = () => {
     errors.value = [$gettext('Could not read file.')]
+    parsedContacts.value = []
   }
   reader.onload = (e) => {
     const text = e.target?.result as string
