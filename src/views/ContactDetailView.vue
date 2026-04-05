@@ -183,7 +183,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { useRouter, useRoute } from '@opencloud-eu/web-pkg'
+import { useRouter, useRoute, useUserStore } from '@opencloud-eu/web-pkg'
 import { useGettext } from 'vue3-gettext'
 import { useContactStore } from '../composables/useContactStore'
 import { useCardDAV } from '../composables/useCardDAV'
@@ -194,6 +194,7 @@ import type { Contact } from '../types/contact'
 const { $gettext } = useGettext()
 const router = useRouter()
 const route = useRoute()
+const userStore = useUserStore()
 const { navigationList, contacts, findByUid, setContacts, setNavigationList } = useContactStore()
 const { deleteContactEntry } = useCardDAV()
 
@@ -211,6 +212,13 @@ const currentUid = ref(uidFromPath(window.location.pathname))
 watch(() => route.path, (path) => {
   const uid = uidFromPath(path)
   if (uid) currentUid.value = uid
+})
+
+// On user switch navigate to the list; ContactsView will reset the store and reload.
+watch(() => userStore.user?.id, (id, prevId) => {
+  if (prevId && id !== prevId) {
+    router.push('/contacts-test/list')
+  }
 })
 
 const contact = computed<Contact | undefined>(() => findByUid(currentUid.value))
