@@ -201,10 +201,11 @@ export function useCardDAV() {
       contacts.value = deduped
       contactStore.setContacts(deduped)
     } catch (err) {
+      if (epoch !== loadEpoch) return // stale — discard error from superseded load
       error.value = err instanceof Error ? err.message : String(err)
       console.error('[useCardDAV] Error loading contacts:', err)
     } finally {
-      loading.value = false
+      if (epoch === loadEpoch) loading.value = false
     }
   }
 
