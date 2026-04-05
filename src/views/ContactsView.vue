@@ -466,14 +466,19 @@ const userStore = useUserStore()
 watch(
   () => userStore.user?.id,
   (id, prevId) => {
-    if (!id) return
+    if (!id) {
+      // Logout — clear immediately so stale data is never shown on re-login
+      setContacts([])
+      sessionStorage.removeItem('oc-contacts-app-token')
+      return
+    }
     if (prevId && prevId !== id) {
       // User switched — clear store and token immediately, then reload
       setContacts([])
       sessionStorage.removeItem('oc-contacts-app-token')
       loadContacts()
-    } else if (!prevId && contacts.value.length === 0) {
-      // Initial mount with no data yet
+    } else if (!prevId) {
+      // Initial mount or re-login after logout — always reload
       loadContacts()
     }
   },
