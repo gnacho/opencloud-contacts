@@ -107,7 +107,7 @@ const importing = ref(false)
 const done = ref(false)
 const doneCount = ref(0)
 const errors = ref<string[]>([])
-const defaultGroup = ref('Alle')
+const defaultGroup = ref('')
 
 const progressPercent = computed(() =>
   parsedContacts.value.length ? Math.round((doneCount.value / parsedContacts.value.length) * 100) : 0
