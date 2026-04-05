@@ -46,7 +46,7 @@ export function useCardDAV() {
 
   function getUsername(): string {
     const u = userStore.user
-    return u?.onPremisesSamAccountName || u?.displayName || ''
+    return u?.onPremisesSamAccountName || u?.id || ''
   }
 
   function getCardDAVBase(): string {
