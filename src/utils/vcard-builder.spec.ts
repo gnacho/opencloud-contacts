@@ -73,6 +73,19 @@ describe('contactToVCard', () => {
     expect(vcard).toContain('PHOTO;ENCODING=b;TYPE=PNG:AAABBBCCC')
   })
 
+  it('does not fold the PHOTO base64 line', () => {
+    const payload = 'A'.repeat(200)
+    const vcard = contactToVCard(
+      makeContact({
+        photoUrl: `data:image/png;base64,${payload}`
+      })
+    )
+
+    const photoLine = vcard.split('\r\n').find((l) => l.startsWith('PHOTO;'))
+    expect(photoLine).toBeDefined()
+    expect(photoLine).toBe(`PHOTO;ENCODING=b;TYPE=PNG:${payload}`)
+  })
+
   it('folds long lines using RFC continuation syntax', () => {
     const vcard = contactToVCard(
       makeContact({
