@@ -463,31 +463,38 @@ function avatarStyle(contact: Contact): Record<string, string> {
 const userStore = useUserStore()
 const authStore = useAuthStore()
 
-// Load contacts when both user ID and access token are available.
-// Watching both prevents a race where userStore.user?.id is set before
-// authStore.accessToken is ready for the new user.
+// React to user ID changes (switch / logout / initial mount).
+// If the access token is already available, load immediately.
+// Otherwise the token watch below handles the delayed case.
 watch(
-  () => ({ userId: userStore.user?.id, token: authStore.accessToken }),
-  ({ userId, token }, prev) => {
-    const prevUserId = prev?.userId
-    if (!userId) {
+  () => userStore.user?.id,
+  (id, prevId) => {
+    if (!id) {
       // Logout — clear immediately so stale data is never shown on re-login
       setContacts([])
       sessionStorage.removeItem('oc-contacts-app-token')
       return
     }
-    if (!token) return // wait for access token before loading
-    if (prevUserId && prevUserId !== userId) {
-      // User switched — clear store and token immediately, then reload
+    if (prevId && prevId !== id) {
+      // User switched — clear store and cached app token, then reload
       setContacts([])
       sessionStorage.removeItem('oc-contacts-app-token')
-      loadContacts()
-    } else if (!prevUserId || (!prev?.token && token)) {
-      // Initial mount, re-login after logout, or token just became available
-      loadContacts()
     }
+    if (authStore.accessToken) loadContacts()
   },
   { immediate: true }
+)
+
+// Handle the race where userStore.user?.id arrives before authStore.accessToken.
+// When the token appears for the first time (null → value), load if user is
+// present but contacts haven't been fetched yet.
+watch(
+  () => authStore.accessToken,
+  (token, prevToken) => {
+    if (token && !prevToken && userStore.user?.id && contacts.value.length === 0) {
+      loadContacts()
+    }
+  }
 )
 </script>
 
