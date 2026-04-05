@@ -479,13 +479,17 @@ watch(
     }
     if (!token) return // access token not yet available — wait for next tick
     if (userId !== lastLoadedUserId.value) {
-      // New user or first load — clear stale data and reload
       if (lastLoadedUserId.value) {
+        // Different user — clear stale data and reload
         setContacts([])
         sessionStorage.removeItem('oc-contacts-app-token')
+        lastLoadedUserId.value = userId
+        loadContacts()
+      } else {
+        // Fresh mount or re-login — only reload if store is empty
+        lastLoadedUserId.value = userId
+        if (contacts.value.length === 0) loadContacts()
       }
-      lastLoadedUserId.value = userId
-      loadContacts()
     }
   },
   { immediate: true }
