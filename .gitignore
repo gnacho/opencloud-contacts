@@ -5,3 +5,11 @@ dist/
 .__mf__temp/
 .claude/
 .codex
+.cache/
+.config/
+.npm/
+.pki/
+.vscode-oss/
+.bashrc
+.inputrc
+.claude.json
