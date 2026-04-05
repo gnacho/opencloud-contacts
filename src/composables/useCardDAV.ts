@@ -30,6 +30,11 @@ const LIST_ITEMS_PROPFIND = `<?xml version="1.0" encoding="utf-8" ?>
 
 const APP_TOKEN_KEY = 'oc-contacts-app-token'
 
+// Module-level counter so concurrent loadContacts() calls across any component
+// instance can detect stale writes. Incremented at the start of every load;
+// only the latest invocation is allowed to commit results to the store.
+let loadEpoch = 0
+
 export function useCardDAV() {
   const authStore = useAuthStore()
   const userStore = useUserStore()
@@ -170,6 +175,7 @@ export function useCardDAV() {
   }
 
   async function loadContacts(): Promise<void> {
+    const epoch = ++loadEpoch
     loading.value = true
     error.value = null
 
@@ -182,6 +188,8 @@ export function useCardDAV() {
         const bookContacts = await fetchContactsFromBook(bookUrl, appToken)
         allContacts.push(...bookContacts)
       }
+
+      if (epoch !== loadEpoch) return // stale — a newer load has started
 
       // Deduplicate by UID
       const seen = new Set<string>()
