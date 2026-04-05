@@ -463,38 +463,32 @@ function avatarStyle(contact: Contact): Record<string, string> {
 const userStore = useUserStore()
 const authStore = useAuthStore()
 
-// React to user ID changes (switch / logout / initial mount).
-// If the access token is already available, load immediately.
-// Otherwise the token watch below handles the delayed case.
+// Track which user's contacts are currently loaded so we can detect switches
+// reliably regardless of whether userId or accessToken changes first.
+const lastLoadedUserId = ref<string | null>(null)
+
 watch(
-  () => userStore.user?.id,
-  (id, prevId) => {
-    if (!id) {
-      // Logout — clear immediately so stale data is never shown on re-login
+  () => [userStore.user?.id, authStore.accessToken] as const,
+  ([userId, token]) => {
+    if (!userId) {
+      // Logged out — clear immediately
       setContacts([])
       sessionStorage.removeItem('oc-contacts-app-token')
+      lastLoadedUserId.value = null
       return
     }
-    if (prevId && prevId !== id) {
-      // User switched — clear store and cached app token, then reload
-      setContacts([])
-      sessionStorage.removeItem('oc-contacts-app-token')
-    }
-    if (authStore.accessToken) loadContacts()
-  },
-  { immediate: true }
-)
-
-// Handle the race where userStore.user?.id arrives before authStore.accessToken.
-// When the token appears for the first time (null → value), load if user is
-// present but contacts haven't been fetched yet.
-watch(
-  () => authStore.accessToken,
-  (token, prevToken) => {
-    if (token && !prevToken && userStore.user?.id && contacts.value.length === 0) {
+    if (!token) return // access token not yet available — wait for next tick
+    if (userId !== lastLoadedUserId.value) {
+      // New user or first load — clear stale data and reload
+      if (lastLoadedUserId.value) {
+        setContacts([])
+        sessionStorage.removeItem('oc-contacts-app-token')
+      }
+      lastLoadedUserId.value = userId
       loadContacts()
     }
-  }
+  },
+  { immediate: true }
 )
 </script>
 
