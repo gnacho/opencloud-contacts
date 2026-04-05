@@ -14,3 +14,6 @@ dist/
 .inputrc
 .claude.json
 .gitconfig
+pnpm-store/
+.bash_history
+.ssh/
