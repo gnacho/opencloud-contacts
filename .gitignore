@@ -13,3 +13,4 @@ dist/
 .bashrc
 .inputrc
 .claude.json
+.gitconfig
