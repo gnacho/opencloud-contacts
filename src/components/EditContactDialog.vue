@@ -212,7 +212,7 @@ const form = reactive({
   addresses: props.contact.addresses.map((a) => ({ ...a })) as ContactAddress[],
   birthday: toDateInput(props.contact.birthday),
   websites: (props.contact.websites ?? []).map((u) => u),
-  categories: (props.contact.categories ?? ['Alle']).map((c) => c),
+  categories: (props.contact.categories ?? []).map((c) => c),
   note: props.contact.note ?? '',
   photoUrl: props.contact.photoUrl ?? ''
 })
