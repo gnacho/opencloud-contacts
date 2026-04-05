@@ -78,6 +78,9 @@
         <span v-if="settingGroup" class="group-progress">
           {{ $gettext('Updating…') }} {{ groupDone }} / {{ groupTotal }}
         </span>
+        <span v-if="groupError" class="group-error">
+          {{ groupError }}
+        </span>
 
         <!-- Delete all -->
         <oc-button
@@ -282,6 +285,7 @@ const router = useRouter()
 const settingGroup = ref(false)
 const groupDone = ref(0)
 const groupTotal = ref(0)
+const groupError = ref<string | null>(null)
 const bulkGroup = ref('Alle')
 
 const contactsWithoutGroup = computed(() =>
@@ -292,6 +296,7 @@ async function setDefaultGroup() {
   settingGroup.value = true
   groupDone.value = 0
   groupTotal.value = contactsWithoutGroup.value.length
+  groupError.value = null
 
   try {
     const updated = contactsWithoutGroup.value.map((c) => ({
@@ -303,9 +308,14 @@ async function setDefaultGroup() {
     const results = await updateContactsBatch(items, (done) => { groupDone.value = done })
 
     // Only apply updates that succeeded on the server
-    const succeededHrefs = new Set(results.filter((r) => !r.error).map((r) => r.href))
+    const succeeded = results.filter((r) => !r.error)
+    const failed = results.filter((r) => r.error)
+    const succeededHrefs = new Set(succeeded.map((r) => r.href))
     const byHref = new Map(updated.filter((c) => succeededHrefs.has(c.href!)).map((c) => [c.href!, c]))
     setContacts(contacts.value.map((c) => byHref.get(c.href!) ?? c))
+    if (failed.length) {
+      groupError.value = $gettext('%{n} contact(s) could not be updated.', { n: failed.length })
+    }
   } finally {
     settingGroup.value = false
   }
