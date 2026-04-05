@@ -82,7 +82,7 @@
       <!-- Done state -->
       <div v-if="done" class="import-done">
         <oc-icon name="checkbox-circle" size="xlarge" color="var(--oc-color-swatch-success-default)" />
-        <p>{{ $gettext('Import completed: %{ok} imported, %{err} errors', { ok: doneCount - errors.length, err: errors.length }) }}</p>
+        <p>{{ $gettext('Import completed: %{ok} imported, %{err} errors', { ok: Math.max(0, doneCount - errors.length), err: errors.length }) }}</p>
       </div>
     </template>
   </oc-modal>
