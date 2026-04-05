@@ -237,7 +237,7 @@ export function parseVCard(raw: string, uid: string): Contact {
         const valueType = params['VALUE']?.toUpperCase()
         if (encoding === 'B' || encoding === 'BASE64') {
           // Inline base64 photo — safe, no external request
-          const mediaType = params['TYPE']?.toLowerCase() || 'jpeg'
+          const mediaType = (params['TYPE']?.split(/[,;]/)[0] ?? 'jpeg').toLowerCase()
           contact.photoUrl = decodeBase64Photo(decoded, `image/${mediaType}`)
         } else if (decoded.trim().startsWith('data:')) {
           // Inline data URI — safe, no external request

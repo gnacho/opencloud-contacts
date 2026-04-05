@@ -76,6 +76,14 @@ describe('parseVCard', () => {
     expect(externalUriContact.photoUrl).toBeUndefined()
   })
 
+  it('uses only the first TYPE value when PHOTO has multiple TYPE tokens', () => {
+    const contact = parseVCard(
+      ['BEGIN:VCARD', 'VERSION:3.0', 'FN:Jane Doe', 'PHOTO;ENCODING=BASE64;TYPE=JPEG,PNG:AAABBB', 'END:VCARD'].join('\r\n'),
+      'fallback-id'
+    )
+    expect(contact.photoUrl).toBe('data:image/jpeg;base64,AAABBB')
+  })
+
   it('unescapes escaped values in structured and text fields', () => {
     const contact = parseVCard(
       [
