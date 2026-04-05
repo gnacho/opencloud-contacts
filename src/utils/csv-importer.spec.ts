@@ -52,6 +52,23 @@ describe('csvContactToVCard', () => {
     expect(vcard).toContain('X-CUSTOM1:foo')
     expect(vcard).toContain('X-CUSTOM3:bar')
   })
+
+  it('includes home address when only homeState is set', () => {
+    const { vcard } = csvContactToVCard({ ...emptyContact(), firstName: 'A', homeState: 'Bayern' })
+    expect(vcard).toContain('ADR;TYPE=HOME:;;')
+    expect(vcard).toContain(';Bayern;')
+  })
+
+  it('includes home address when only homeStreet2 is set', () => {
+    const { vcard } = csvContactToVCard({ ...emptyContact(), firstName: 'A', homeStreet2: 'Apt 2' })
+    expect(vcard).toContain('ADR;TYPE=HOME:;;Apt 2;')
+  })
+
+  it('includes work address when only workState is set', () => {
+    const { vcard } = csvContactToVCard({ ...emptyContact(), firstName: 'A', workState: 'Berlin' })
+    expect(vcard).toContain('ADR;TYPE=WORK:;;')
+    expect(vcard).toContain(';Berlin;')
+  })
 })
 
 function emptyContact() {

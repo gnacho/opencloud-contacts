@@ -318,12 +318,12 @@ export function csvContactToVCard(c: CsvContact, defaultCategory?: string): { ui
   }
   if (c.title) push(`TITLE:${escapeVCard(c.title)}`)
 
-  if (c.homeStreet || c.homeCity || c.homeZip || c.homeCountry) {
+  if (c.homeStreet || c.homeStreet2 || c.homeCity || c.homeState || c.homeZip || c.homeCountry) {
     const street = escapeVCard([c.homeStreet, c.homeStreet2].filter(Boolean).join('\n'))
     push(`ADR;TYPE=HOME:;;${street};${escapeVCard(c.homeCity)};${escapeVCard(c.homeState)};${escapeVCard(c.homeZip)};${escapeVCard(c.homeCountry)}`)
   }
 
-  if (c.workStreet || c.workCity || c.workZip || c.workCountry) {
+  if (c.workStreet || c.workStreet2 || c.workCity || c.workState || c.workZip || c.workCountry) {
     const street = escapeVCard([c.workStreet, c.workStreet2].filter(Boolean).join('\n'))
     push(`ADR;TYPE=WORK:;;${street};${escapeVCard(c.workCity)};${escapeVCard(c.workState)};${escapeVCard(c.workZip)};${escapeVCard(c.workCountry)}`)
   }
