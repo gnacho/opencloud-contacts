@@ -2,9 +2,14 @@ import type { Contact, ContactEmail, ContactPhone, ContactAddress } from '../typ
 
 /**
  * Unfolds vCard lines: continuation lines start with a space or tab.
+ * QUOTED-PRINTABLE soft-breaks (=\r\n + optional whitespace) are stripped
+ * first so the QP escape character is not left dangling after standard unfold.
  */
 function unfold(raw: string): string {
-  return raw.replace(/\r\n[ \t]/g, '').replace(/\n[ \t]/g, '')
+  return raw
+    .replace(/=\r\n[ \t]?/g, '')   // QP soft-break (RFC 2045 §6.7)
+    .replace(/\r\n[ \t]/g, '')     // standard vCard fold
+    .replace(/\n[ \t]/g, '')       // LF-only fold
 }
 
 /**

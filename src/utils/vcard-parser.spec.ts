@@ -144,6 +144,14 @@ describe('parseVCard', () => {
     expect(contact.custom3).toBe('bar')
     expect(contact.custom2).toBeUndefined()
   })
+
+  it('correctly decodes folded QUOTED-PRINTABLE soft-break lines', () => {
+    const contact = parseVCard(
+      'BEGIN:VCARD\r\nVERSION:3.0\r\nFN;ENCODING=QUOTED-PRINTABLE;CHARSET=UTF-8:M=C3=BCller=\r\n =20Test\r\nEND:VCARD',
+      'fallback-id'
+    )
+    expect(contact.displayName).toBe('Müller Test')
+  })
 })
 
 describe('parseCardDAVReport', () => {
