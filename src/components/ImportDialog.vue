@@ -128,6 +128,7 @@ function loadFile(file: File) {
       parsedContacts.value = parseThunderbirdCSV(text)
     } catch (err) {
       errors.value = [err instanceof Error ? err.message : $gettext('Could not parse CSV file.')]
+      parsedContacts.value = []
       return
     }
     errors.value = []
