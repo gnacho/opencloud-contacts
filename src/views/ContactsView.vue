@@ -478,7 +478,7 @@ watch(
     if (!userId) {
       // Logged out — clear immediately
       setContacts([])
-      sessionStorage.removeItem('oc-contacts-app-token')
+      if (lastLoadedUserId.value) localStorage.removeItem(`oc-contacts-app-token-${lastLoadedUserId.value}`)
       lastLoadedUserId.value = null
       return
     }
@@ -487,7 +487,7 @@ watch(
       if (lastLoadedUserId.value) {
         // Different user — clear stale data and reload
         setContacts([])
-        sessionStorage.removeItem('oc-contacts-app-token')
+        localStorage.removeItem(`oc-contacts-app-token-${lastLoadedUserId.value}`)
         lastLoadedUserId.value = userId
         loadContacts()
       } else {

@@ -28,7 +28,11 @@ const LIST_ITEMS_PROPFIND = `<?xml version="1.0" encoding="utf-8" ?>
   <D:prop><D:resourcetype/></D:prop>
 </D:propfind>`
 
-const APP_TOKEN_KEY = 'oc-contacts-app-token'
+const APP_TOKEN_KEY_PREFIX = 'oc-contacts-app-token'
+
+function appTokenKey(userId: string): string {
+  return `${APP_TOKEN_KEY_PREFIX}-${userId}`
+}
 
 // Module-level counter so concurrent loadContacts() calls across any component
 // instance can detect stale writes. Incremented at the start of every load;
@@ -69,7 +73,8 @@ export function useCardDAV() {
    */
   function evictTokenOnAuthFailure(status: number): void {
     if (status === 401 || status === 403) {
-      sessionStorage.removeItem(APP_TOKEN_KEY)
+      const userId = userStore.user?.id
+      if (userId) localStorage.removeItem(appTokenKey(userId))
     }
   }
 
@@ -83,7 +88,7 @@ export function useCardDAV() {
 
   /** Create a new app token via the auth-app API */
   async function createAppToken(bearerToken: string): Promise<string> {
-    const resp = await fetch('/auth-app/tokens?expiry=72h&label=contacts-app', {
+    const resp = await fetch('/auth-app/tokens?expiry=17520h&label=contacts-app', {
       method: 'POST',
       headers: { Authorization: `Bearer ${bearerToken}` }
     })
@@ -96,17 +101,20 @@ export function useCardDAV() {
 
   /** Get or create a cached app token for CardDAV Basic Auth */
   async function getAppToken(): Promise<string> {
-    // Check sessionStorage first
-    const cached = sessionStorage.getItem(APP_TOKEN_KEY)
+    const userId = userStore.user?.id
+    if (!userId) throw new Error('No user logged in')
+
+    // Persist in localStorage so the token survives browser restarts.
+    // Keyed per user so switching accounts never mixes tokens.
+    const key = appTokenKey(userId)
+    const cached = localStorage.getItem(key)
     if (cached) return cached
 
     const bearerToken = authStore.accessToken
     if (!bearerToken) throw new Error('No access token available')
 
-    // Always create a new token (GET /auth-app/tokens returns UUIDs, not usable tokens)
     const token = await createAppToken(bearerToken)
-
-    sessionStorage.setItem(APP_TOKEN_KEY, token)
+    localStorage.setItem(key, token)
     return token
   }
 
