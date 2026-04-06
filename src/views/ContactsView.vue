@@ -476,18 +476,16 @@ watch(
   () => [userStore.user?.id, authStore.accessToken] as const,
   ([userId, token]) => {
     if (!userId) {
-      // Logged out — clear immediately
+      // Logged out — clear contacts; keep app token in localStorage (still valid, reused on re-login)
       setContacts([])
-      if (lastLoadedUserId.value) localStorage.removeItem(`oc-contacts-app-token-${lastLoadedUserId.value}`)
       lastLoadedUserId.value = null
       return
     }
     if (!token) return // access token not yet available — wait for next tick
     if (userId !== lastLoadedUserId.value) {
       if (lastLoadedUserId.value) {
-        // Different user — clear stale data and reload
+        // Different user — clear stale contacts; each user has their own token key
         setContacts([])
-        localStorage.removeItem(`oc-contacts-app-token-${lastLoadedUserId.value}`)
         lastLoadedUserId.value = userId
         loadContacts()
       } else {
