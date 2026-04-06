@@ -17,4 +17,4 @@ dist/
 pnpm-store/
 .bash_history
 .ssh/
-deploay.sh
+deploy.sh
