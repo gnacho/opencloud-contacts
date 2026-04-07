@@ -270,7 +270,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { version as appVersion } from '../../package.json'
 import { useRouter, useUserStore, useAuthStore } from '@opencloud-eu/web-pkg'
 import { useGettext } from 'vue3-gettext'

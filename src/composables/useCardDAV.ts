@@ -39,6 +39,10 @@ function appTokenKey(userId: string): string {
 // only the latest invocation is allowed to commit results to the store.
 let loadEpoch = 0
 
+// In-flight token requests keyed by userId — prevents two concurrent callers
+// from each triggering a separate POST /auth-app/tokens.
+const tokenRequestsInFlight = new Map<string, Promise<string>>()
+
 export function useCardDAV() {
   const authStore = useAuthStore()
   const userStore = useUserStore()
@@ -88,7 +92,7 @@ export function useCardDAV() {
 
   /** Create a new app token via the auth-app API */
   async function createAppToken(bearerToken: string): Promise<string> {
-    const resp = await fetch('/auth-app/tokens?expiry=17520h&label=contacts-app', {
+    const resp = await fetch('/auth-app/tokens?expiry=24h&label=contacts-app', {
       method: 'POST',
       headers: { Authorization: `Bearer ${bearerToken}` }
     })
@@ -110,12 +114,24 @@ export function useCardDAV() {
     const cached = localStorage.getItem(key)
     if (cached) return cached
 
+    // Deduplicate concurrent token creation requests for the same user.
+    const inflight = tokenRequestsInFlight.get(userId)
+    if (inflight) return inflight
+
     const bearerToken = authStore.accessToken
     if (!bearerToken) throw new Error('No access token available')
 
-    const token = await createAppToken(bearerToken)
-    localStorage.setItem(key, token)
-    return token
+    const request = createAppToken(bearerToken).then((token) => {
+      localStorage.setItem(key, token)
+      tokenRequestsInFlight.delete(userId)
+      return token
+    }).catch((err) => {
+      tokenRequestsInFlight.delete(userId)
+      throw err
+    })
+
+    tokenRequestsInFlight.set(userId, request)
+    return request
   }
 
   /**
@@ -182,7 +198,7 @@ export function useCardDAV() {
     })
   }
 
-  async function loadContacts(): Promise<void> {
+  async function loadContacts(retried = false): Promise<void> {
     const epoch = ++loadEpoch
     loading.value = true
     error.value = null
@@ -210,6 +226,12 @@ export function useCardDAV() {
       contactStore.setContacts(deduped)
     } catch (err) {
       if (epoch !== loadEpoch) return // stale — discard error from superseded load
+      // If the cached token was manually revoked on the server, evictTokenOnAuthFailure
+      // already removed it from localStorage — retry once to get a fresh token.
+      const is401 = err instanceof Error && /40[13]/.test(err.message)
+      if (is401 && !retried) {
+        return loadContacts(true)
+      }
       error.value = err instanceof Error ? err.message : String(err)
       console.error('[useCardDAV] Error loading contacts:', err)
     } finally {
