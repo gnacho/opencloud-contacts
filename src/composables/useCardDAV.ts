@@ -90,8 +90,34 @@ export function useCardDAV() {
     }
   }
 
+  /** Delete expired contacts-app tokens from the server to avoid accumulation. */
+  async function purgeExpiredAppTokens(bearerToken: string): Promise<void> {
+    try {
+      const resp = await fetch('/auth-app/tokens', {
+        headers: { Authorization: `Bearer ${bearerToken}` }
+      })
+      if (!resp.ok) return
+      const tokens = await resp.json() as Array<{ id: string; label: string; expiration_date: string }>
+      const now = new Date()
+      const expired = tokens.filter(
+        (t) => t.label === 'contacts-app' && new Date(t.expiration_date) <= now
+      )
+      await Promise.all(
+        expired.map((t) =>
+          fetch(`/auth-app/tokens/${t.id}`, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${bearerToken}` }
+          })
+        )
+      )
+    } catch {
+      // Non-critical — ignore errors during cleanup
+    }
+  }
+
   /** Create a new app token via the auth-app API */
   async function createAppToken(bearerToken: string): Promise<string> {
+    await purgeExpiredAppTokens(bearerToken)
     const resp = await fetch('/auth-app/tokens?expiry=24h&label=contacts-app', {
       method: 'POST',
       headers: { Authorization: `Bearer ${bearerToken}` }
