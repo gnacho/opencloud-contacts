@@ -91,34 +91,6 @@
       <!-- Detail cards -->
       <div class="detail-cards">
 
-        <!-- Name details -->
-        <div
-          v-if="contact.firstName || contact.lastName || contact.prefix || contact.suffix || contact.middleName"
-          class="detail-card"
-        >
-          <h2 class="detail-card-title">{{ $gettext('Name') }}</h2>
-          <div v-if="contact.prefix" class="detail-field">
-            <div class="detail-field-label">{{ $gettext('Prefix') }}</div>
-            <div class="detail-field-value">{{ contact.prefix }}</div>
-          </div>
-          <div v-if="contact.firstName" class="detail-field">
-            <div class="detail-field-label">{{ $gettext('First name') }}</div>
-            <div class="detail-field-value">{{ contact.firstName }}</div>
-          </div>
-          <div v-if="contact.middleName" class="detail-field">
-            <div class="detail-field-label">{{ $gettext('Middle name') }}</div>
-            <div class="detail-field-value">{{ contact.middleName }}</div>
-          </div>
-          <div v-if="contact.lastName" class="detail-field">
-            <div class="detail-field-label">{{ $gettext('Last name') }}</div>
-            <div class="detail-field-value">{{ contact.lastName }}</div>
-          </div>
-          <div v-if="contact.suffix" class="detail-field">
-            <div class="detail-field-label">{{ $gettext('Suffix') }}</div>
-            <div class="detail-field-value">{{ contact.suffix }}</div>
-          </div>
-        </div>
-
         <!-- Groups -->
         <div v-if="contact.categories?.length" class="detail-card">
           <h2 class="detail-card-title">{{ $gettext('Groups') }}</h2>
@@ -569,8 +541,9 @@ function avatarStyle(c: Contact): Record<string, string> {
   border-radius: 999px;
   font-size: 0.8rem;
   font-weight: 600;
-  background: var(--oc-color-swatch-brand-default);
-  color: #fff;
+  background: transparent;
+  border: 1.5px solid var(--oc-color-swatch-brand-default);
+  color: var(--oc-color-swatch-brand-default);
   line-height: 1.6;
 }
 
