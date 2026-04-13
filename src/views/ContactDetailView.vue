@@ -325,6 +325,17 @@ function avatarStyle(c: Contact): Record<string, string> {
   margin-bottom: 2rem;
 }
 
+@media (prefers-color-scheme: dark) {
+  .bcard {
+    background: color-mix(in srgb, white 10%, var(--oc-color-background-highlight));
+    border-color: rgba(255, 255, 255, 0.18);
+    box-shadow:
+      0 12px 40px rgba(0, 0, 0, 0.6),
+      0 0 0 1px rgba(255, 255, 255, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+}
+
 /* Header */
 .bcard-header {
   background: var(--bcard-accent);
