@@ -2,5 +2,5 @@
   "id": "contacts-test",
   "name": "Contacts",
   "description": "OpenCloud Contacts App – reads contacts from Radicale via CardDAV",
-  "version": "0.2.0"
+  "version": "0.3.0"
 }
