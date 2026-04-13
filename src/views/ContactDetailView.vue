@@ -30,104 +30,66 @@
       <!-- Business card -->
       <div class="bcard" :style="{ '--bcard-accent': accentColor }">
 
-        <!-- Avatar panel -->
-        <div class="bcard-avatar-panel">
+        <!-- Header: avatar + name -->
+        <div class="bcard-header">
           <div class="bcard-avatar" :style="avatarStyle(contact)">
             <img v-if="contact.photoUrl" :src="contact.photoUrl" :alt="contact.displayName" class="avatar-img" />
             <span v-else class="avatar-initials">{{ initials(contact) }}</span>
           </div>
+          <div class="bcard-header-info">
+            <h1 class="bcard-name">{{ contact.displayName }}</h1>
+            <p v-if="contact.title" class="bcard-title">{{ contact.title }}</p>
+            <p v-if="contact.organization" class="bcard-org">{{ contact.organization }}</p>
+          </div>
         </div>
 
-        <!-- Info panel -->
+        <!-- Contact rows -->
         <div class="bcard-body">
-          <div class="bcard-identity">
-            <h1 class="bcard-name">{{ contact.displayName }}</h1>
-            <p v-if="contact.title || contact.organization" class="bcard-subtitle">
-              <span v-if="contact.title">{{ contact.title }}</span>
-              <span v-if="contact.title && contact.organization" class="bcard-sep"> · </span>
-              <span v-if="contact.organization" class="bcard-org">{{ contact.organization }}</span>
-            </p>
+          <a v-for="(email, i) in contact.emails" :key="`e${i}`" :href="`mailto:${email.value}`" class="bcard-row bcard-row--link">
+            <oc-icon name="mail" size="small" class="bcard-row-icon" />
+            <span class="bcard-row-label">{{ emailLabel(email.type) }}</span>
+            <span class="bcard-row-value">{{ email.value }}</span>
+          </a>
+          <a v-for="(phone, i) in contact.phones" :key="`p${i}`" :href="`tel:${phone.value}`" class="bcard-row bcard-row--link">
+            <oc-icon name="phone" size="small" class="bcard-row-icon" />
+            <span class="bcard-row-label">{{ phoneLabel(phone.type) }}</span>
+            <span class="bcard-row-value">{{ phone.value }}</span>
+          </a>
+          <div v-for="(addr, i) in contact.addresses" :key="`a${i}`" class="bcard-row">
+            <oc-icon name="map-pin" size="small" class="bcard-row-icon" />
+            <span class="bcard-row-label">{{ addr.type || $gettext('Address') }}</span>
+            <span class="bcard-row-value">{{ [addr.street, [addr.postalCode, addr.city].filter(Boolean).join(' '), addr.country].filter(Boolean).join(', ') }}</span>
           </div>
+          <div v-if="contact.note" class="bcard-row">
+            <oc-icon name="chat-1" size="small" class="bcard-row-icon" />
+            <span class="bcard-row-label">{{ $gettext('Note') }}</span>
+            <span class="bcard-row-value bcard-row-value--note">{{ contact.note }}</span>
+          </div>
+        </div>
 
-          <div class="bcard-contacts">
-            <a v-if="contact.emails.length" :href="`mailto:${contact.emails[0].value}`" class="bcard-contact-row">
-              <oc-icon name="mail" size="small" />
-              <span>{{ contact.emails[0].value }}</span>
-            </a>
-            <a v-if="contact.phones.length" :href="`tel:${contact.phones[0].value}`" class="bcard-contact-row">
-              <oc-icon name="phone" size="small" />
-              <span>{{ contact.phones[0].value }}</span>
-            </a>
-            <span v-if="primaryAddress" class="bcard-contact-row">
-              <oc-icon name="map-pin" size="small" />
-              <span>{{ primaryAddress }}</span>
-            </span>
-          </div>
-
-          <div class="bcard-actions">
-            <oc-button
-              v-if="contact.emails.length"
-              appearance="outline"
-              @click="openHref(`mailto:${contact.emails[0].value}`)"
-            >
-              <oc-icon name="mail" size="small" />
-              {{ $gettext('Email') }}
-            </oc-button>
-            <oc-button
-              v-if="contact.phones.length"
-              appearance="outline"
-              @click="openHref(`tel:${contact.phones[0].value}`)"
-            >
-              <oc-icon name="phone" size="small" />
-              {{ $gettext('Call') }}
-            </oc-button>
-            <oc-button appearance="outline" @click="downloadVCard">
-              <oc-icon name="download" size="small" />
-              {{ $gettext('Download vCard') }}
-            </oc-button>
-            <oc-button appearance="outline" @click="showEdit = true">
-              <oc-icon name="edit" size="small" />
-              {{ $gettext('Edit') }}
-            </oc-button>
-            <oc-button appearance="outline" variation="danger" @click="confirmDelete">
-              <oc-icon name="delete-bin" size="small" />
-              {{ $gettext('Delete') }}
-            </oc-button>
-          </div>
+        <!-- Action toolbar -->
+        <div class="bcard-toolbar">
+          <oc-button v-if="contact.emails.length" appearance="outline" @click="openHref(`mailto:${contact.emails[0].value}`)">
+            <oc-icon name="mail" size="small" />{{ $gettext('Email') }}
+          </oc-button>
+          <oc-button v-if="contact.phones.length" appearance="outline" @click="openHref(`tel:${contact.phones[0].value}`)">
+            <oc-icon name="phone" size="small" />{{ $gettext('Call') }}
+          </oc-button>
+          <oc-button appearance="outline" @click="downloadVCard">
+            <oc-icon name="download" size="small" />{{ $gettext('vCard') }}
+          </oc-button>
+          <div class="bcard-toolbar-spacer" />
+          <oc-button appearance="outline" @click="showEdit = true">
+            <oc-icon name="edit" size="small" />{{ $gettext('Edit') }}
+          </oc-button>
+          <oc-button appearance="outline" variation="danger" @click="confirmDelete">
+            <oc-icon name="delete-bin" size="small" />{{ $gettext('Delete') }}
+          </oc-button>
         </div>
       </div>
 
       <!-- Detail cards -->
       <div class="detail-cards">
-
-        <!-- Contact info -->
-        <div class="detail-card">
-          <h2 class="detail-card-title">{{ $gettext('Contact information') }}</h2>
-
-          <div v-if="contact.emails.length" class="detail-field-group">
-            <div v-for="(email, i) in contact.emails" :key="i" class="detail-field">
-              <div class="detail-field-label">{{ emailLabel(email.type) }}</div>
-              <a :href="`mailto:${email.value}`" class="contact-link detail-field-value">{{ email.value }}</a>
-            </div>
-          </div>
-
-          <div v-if="contact.phones.length" class="detail-field-group">
-            <div v-for="(phone, i) in contact.phones" :key="i" class="detail-field">
-              <div class="detail-field-label">{{ phoneLabel(phone.type) }}</div>
-              <a :href="`tel:${phone.value}`" class="contact-link detail-field-value">{{ phone.value }}</a>
-            </div>
-          </div>
-
-          <div v-if="contact.organization" class="detail-field">
-            <div class="detail-field-label">{{ $gettext('Organisation') }}</div>
-            <div class="detail-field-value">{{ contact.organization }}</div>
-          </div>
-
-          <div v-if="contact.title" class="detail-field">
-            <div class="detail-field-label">{{ $gettext('Title') }}</div>
-            <div class="detail-field-value">{{ contact.title }}</div>
-          </div>
-        </div>
 
         <!-- Name details -->
         <div
@@ -157,35 +119,12 @@
           </div>
         </div>
 
-        <!-- Addresses -->
-        <div v-if="contact.addresses.length" class="detail-card">
-          <h2 class="detail-card-title">{{ $gettext('Addresses') }}</h2>
-          <div v-for="(addr, i) in contact.addresses" :key="i" class="detail-field">
-            <div class="detail-field-label">
-              {{ $gettext('Address') }}
-              <span v-if="addr.type" class="contact-badge">{{ addr.type }}</span>
-            </div>
-            <address class="detail-field-value detail-address">
-              <span v-if="addr.street">{{ addr.street }}<br /></span>
-              <span v-if="addr.postalCode || addr.city">{{ [addr.postalCode, addr.city].filter(Boolean).join(' ') }}<br /></span>
-              <span v-if="addr.region">{{ addr.region }}<br /></span>
-              <span v-if="addr.country">{{ addr.country }}</span>
-            </address>
-          </div>
-        </div>
-
         <!-- Groups -->
         <div v-if="contact.categories?.length" class="detail-card">
           <h2 class="detail-card-title">{{ $gettext('Groups') }}</h2>
           <div class="detail-categories">
             <span v-for="cat in contact.categories" :key="cat" class="detail-category-chip">{{ cat }}</span>
           </div>
-        </div>
-
-        <!-- Notes -->
-        <div v-if="contact.note" class="detail-card">
-          <h2 class="detail-card-title">{{ $gettext('Notes') }}</h2>
-          <p class="detail-note">{{ contact.note }}</p>
         </div>
 
       </div>
@@ -405,37 +344,35 @@ function avatarStyle(c: Contact): Record<string, string> {
 
 /* --- Business Card --- */
 .bcard {
-  display: flex;
+  max-width: 560px;
   background: var(--oc-color-background-highlight);
   border: 1px solid var(--oc-color-border);
-  border-left: 5px solid var(--bcard-accent);
-  border-radius: 0.75rem;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  border-radius: 1rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
   overflow: hidden;
   margin-bottom: 2rem;
 }
 
-.bcard-avatar-panel {
+/* Header */
+.bcard-header {
+  background: var(--bcard-accent);
+  padding: 1.75rem 2rem;
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 2rem 2.5rem;
-  background: color-mix(in srgb, var(--bcard-accent) 12%, var(--oc-color-background-highlight));
-  border-right: 1px solid var(--oc-color-border);
-  flex-shrink: 0;
+  gap: 1.25rem;
 }
 
 .bcard-avatar {
-  width: 7rem;
-  height: 7rem;
+  width: 5rem;
+  height: 5rem;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
   flex-shrink: 0;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.18);
-  border: 3px solid rgba(255, 255, 255, 0.55);
+  border: 3px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
 }
 
 .avatar-img {
@@ -445,70 +382,100 @@ function avatarStyle(c: Contact): Record<string, string> {
 }
 
 .avatar-initials {
-  font-size: 2.5rem;
+  font-size: 1.75rem;
   font-weight: 700;
   color: #fff;
   line-height: 1;
 }
 
-.bcard-body {
-  flex: 1;
-  padding: 1.75rem 2rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.875rem;
+.bcard-header-info {
   min-width: 0;
 }
 
 .bcard-name {
-  font-size: 1.75rem;
+  font-size: 1.4rem;
   font-weight: 700;
   margin: 0;
-  letter-spacing: -0.02em;
-  color: var(--oc-color-text-default);
+  color: #fff;
   line-height: 1.2;
+  letter-spacing: -0.01em;
 }
 
-.bcard-subtitle {
-  font-size: 0.9rem;
-  color: var(--oc-color-text-muted);
-  margin: 0.2rem 0 0;
+.bcard-title {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0.25rem 0 0;
 }
 
 .bcard-org {
-  font-weight: 600;
-}
-
-.bcard-sep {
-  opacity: 0.4;
-}
-
-.bcard-contacts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem 2rem;
-}
-
-.bcard-contact-row {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
   font-size: 0.875rem;
-  color: var(--oc-color-text-muted);
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0.15rem 0 0;
+}
+
+/* Contact rows */
+.bcard-body {
+  padding: 0.5rem 0;
+}
+
+.bcard-row {
+  display: grid;
+  grid-template-columns: 2rem 6rem 1fr;
+  align-items: center;
+  gap: 0 0.75rem;
+  padding: 0.65rem 2rem;
+  border-bottom: 1px solid var(--oc-color-border);
   text-decoration: none;
+  color: inherit;
 }
 
-a.bcard-contact-row:hover {
+.bcard-row:last-child {
+  border-bottom: none;
+}
+
+.bcard-row--link:hover .bcard-row-value {
   color: var(--bcard-accent);
+  text-decoration: underline;
 }
 
-.bcard-actions {
+.bcard-row-icon {
+  color: var(--oc-color-text-muted);
+  justify-self: center;
+}
+
+.bcard-row-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--oc-color-text-muted);
+}
+
+.bcard-row-value {
+  font-size: 0.9rem;
+  color: var(--oc-color-text-default);
+  word-break: break-word;
+}
+
+.bcard-row-value--note {
+  white-space: pre-wrap;
+  font-size: 0.85rem;
+}
+
+/* Action toolbar */
+.bcard-toolbar {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 0.5rem;
-  padding-top: 1rem;
+  padding: 0.875rem 2rem;
   border-top: 1px solid var(--oc-color-border);
-  margin-top: auto;
+  background: color-mix(in srgb, var(--bcard-accent) 5%, var(--oc-color-background-highlight));
+}
+
+.bcard-toolbar-spacer {
+  flex: 1;
 }
 
 /* --- Detail cards --- */
