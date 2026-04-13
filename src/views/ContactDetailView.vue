@@ -27,25 +27,47 @@
         </div>
       </div>
 
-      <!-- Two-column layout -->
-      <div class="detail-layout">
+      <!-- Business card -->
+      <div class="bcard" :style="{ '--bcard-accent': accentColor }">
 
-        <!-- LEFT: identity panel -->
-        <aside class="detail-sidebar">
-          <div class="detail-avatar" :style="avatarStyle(contact)">
+        <!-- Avatar panel -->
+        <div class="bcard-avatar-panel">
+          <div class="bcard-avatar" :style="avatarStyle(contact)">
             <img v-if="contact.photoUrl" :src="contact.photoUrl" :alt="contact.displayName" class="avatar-img" />
             <span v-else class="avatar-initials">{{ initials(contact) }}</span>
           </div>
+        </div>
 
-          <h1 class="detail-name">{{ contact.displayName }}</h1>
-          <p v-if="contact.title" class="detail-subtitle">{{ contact.title }}</p>
-          <p v-if="contact.organization" class="detail-subtitle detail-org">{{ contact.organization }}</p>
+        <!-- Info panel -->
+        <div class="bcard-body">
+          <div class="bcard-identity">
+            <h1 class="bcard-name">{{ contact.displayName }}</h1>
+            <p v-if="contact.title || contact.organization" class="bcard-subtitle">
+              <span v-if="contact.title">{{ contact.title }}</span>
+              <span v-if="contact.title && contact.organization" class="bcard-sep"> · </span>
+              <span v-if="contact.organization" class="bcard-org">{{ contact.organization }}</span>
+            </p>
+          </div>
 
-          <div class="detail-actions">
+          <div class="bcard-contacts">
+            <a v-if="contact.emails.length" :href="`mailto:${contact.emails[0].value}`" class="bcard-contact-row">
+              <oc-icon name="mail" size="small" />
+              <span>{{ contact.emails[0].value }}</span>
+            </a>
+            <a v-if="contact.phones.length" :href="`tel:${contact.phones[0].value}`" class="bcard-contact-row">
+              <oc-icon name="phone" size="small" />
+              <span>{{ contact.phones[0].value }}</span>
+            </a>
+            <span v-if="primaryAddress" class="bcard-contact-row">
+              <oc-icon name="map-pin" size="small" />
+              <span>{{ primaryAddress }}</span>
+            </span>
+          </div>
+
+          <div class="bcard-actions">
             <oc-button
               v-if="contact.emails.length"
               appearance="outline"
-              class="detail-action-btn"
               @click="openHref(`mailto:${contact.emails[0].value}`)"
             >
               <oc-icon name="mail" size="small" />
@@ -54,119 +76,118 @@
             <oc-button
               v-if="contact.phones.length"
               appearance="outline"
-              class="detail-action-btn"
               @click="openHref(`tel:${contact.phones[0].value}`)"
             >
               <oc-icon name="phone" size="small" />
               {{ $gettext('Call') }}
             </oc-button>
-            <oc-button appearance="outline" class="detail-action-btn" @click="downloadVCard">
+            <oc-button appearance="outline" @click="downloadVCard">
               <oc-icon name="download" size="small" />
               {{ $gettext('Download vCard') }}
             </oc-button>
-            <oc-button appearance="outline" class="detail-action-btn" @click="showEdit = true">
+            <oc-button appearance="outline" @click="showEdit = true">
               <oc-icon name="edit" size="small" />
               {{ $gettext('Edit') }}
             </oc-button>
-            <oc-button appearance="outline" variation="danger" class="detail-action-btn" @click="confirmDelete">
+            <oc-button appearance="outline" variation="danger" @click="confirmDelete">
               <oc-icon name="delete-bin" size="small" />
               {{ $gettext('Delete') }}
             </oc-button>
           </div>
-        </aside>
-
-        <!-- RIGHT: detail cards -->
-        <div class="detail-body">
-
-          <!-- Contact info -->
-          <div class="detail-card">
-            <h2 class="detail-card-title">{{ $gettext('Contact information') }}</h2>
-
-            <div v-if="contact.emails.length" class="detail-field-group">
-              <div v-for="(email, i) in contact.emails" :key="i" class="detail-field">
-                <div class="detail-field-label">{{ emailLabel(email.type) }}</div>
-                <a :href="`mailto:${email.value}`" class="contact-link detail-field-value">{{ email.value }}</a>
-              </div>
-            </div>
-
-            <div v-if="contact.phones.length" class="detail-field-group">
-              <div v-for="(phone, i) in contact.phones" :key="i" class="detail-field">
-                <div class="detail-field-label">{{ phoneLabel(phone.type) }}</div>
-                <a :href="`tel:${phone.value}`" class="contact-link detail-field-value">{{ phone.value }}</a>
-              </div>
-            </div>
-
-            <div v-if="contact.organization" class="detail-field">
-              <div class="detail-field-label">{{ $gettext('Organisation') }}</div>
-              <div class="detail-field-value">{{ contact.organization }}</div>
-            </div>
-
-            <div v-if="contact.title" class="detail-field">
-              <div class="detail-field-label">{{ $gettext('Title') }}</div>
-              <div class="detail-field-value">{{ contact.title }}</div>
-            </div>
-          </div>
-
-          <!-- Name details -->
-          <div
-            v-if="contact.firstName || contact.lastName || contact.prefix || contact.suffix || contact.middleName"
-            class="detail-card"
-          >
-            <h2 class="detail-card-title">{{ $gettext('Name') }}</h2>
-            <div v-if="contact.prefix" class="detail-field">
-              <div class="detail-field-label">{{ $gettext('Prefix') }}</div>
-              <div class="detail-field-value">{{ contact.prefix }}</div>
-            </div>
-            <div v-if="contact.firstName" class="detail-field">
-              <div class="detail-field-label">{{ $gettext('First name') }}</div>
-              <div class="detail-field-value">{{ contact.firstName }}</div>
-            </div>
-            <div v-if="contact.middleName" class="detail-field">
-              <div class="detail-field-label">{{ $gettext('Middle name') }}</div>
-              <div class="detail-field-value">{{ contact.middleName }}</div>
-            </div>
-            <div v-if="contact.lastName" class="detail-field">
-              <div class="detail-field-label">{{ $gettext('Last name') }}</div>
-              <div class="detail-field-value">{{ contact.lastName }}</div>
-            </div>
-            <div v-if="contact.suffix" class="detail-field">
-              <div class="detail-field-label">{{ $gettext('Suffix') }}</div>
-              <div class="detail-field-value">{{ contact.suffix }}</div>
-            </div>
-          </div>
-
-          <!-- Addresses -->
-          <div v-if="contact.addresses.length" class="detail-card">
-            <h2 class="detail-card-title">{{ $gettext('Addresses') }}</h2>
-            <div v-for="(addr, i) in contact.addresses" :key="i" class="detail-field">
-              <div class="detail-field-label">
-                {{ $gettext('Address') }}
-                <span v-if="addr.type" class="contact-badge">{{ addr.type }}</span>
-              </div>
-              <address class="detail-field-value detail-address">
-                <span v-if="addr.street">{{ addr.street }}<br /></span>
-                <span v-if="addr.postalCode || addr.city">{{ [addr.postalCode, addr.city].filter(Boolean).join(' ') }}<br /></span>
-                <span v-if="addr.region">{{ addr.region }}<br /></span>
-                <span v-if="addr.country">{{ addr.country }}</span>
-              </address>
-            </div>
-          </div>
-
-          <!-- Groups -->
-          <div v-if="contact.categories?.length" class="detail-card">
-            <h2 class="detail-card-title">{{ $gettext('Groups') }}</h2>
-            <div class="detail-categories">
-              <span v-for="cat in contact.categories" :key="cat" class="detail-category-chip">{{ cat }}</span>
-            </div>
-          </div>
-
-          <!-- Notes -->
-          <div v-if="contact.note" class="detail-card">
-            <h2 class="detail-card-title">{{ $gettext('Notes') }}</h2>
-            <p class="detail-note">{{ contact.note }}</p>
-          </div>
-
         </div>
+      </div>
+
+      <!-- Detail cards -->
+      <div class="detail-cards">
+
+        <!-- Contact info -->
+        <div class="detail-card">
+          <h2 class="detail-card-title">{{ $gettext('Contact information') }}</h2>
+
+          <div v-if="contact.emails.length" class="detail-field-group">
+            <div v-for="(email, i) in contact.emails" :key="i" class="detail-field">
+              <div class="detail-field-label">{{ emailLabel(email.type) }}</div>
+              <a :href="`mailto:${email.value}`" class="contact-link detail-field-value">{{ email.value }}</a>
+            </div>
+          </div>
+
+          <div v-if="contact.phones.length" class="detail-field-group">
+            <div v-for="(phone, i) in contact.phones" :key="i" class="detail-field">
+              <div class="detail-field-label">{{ phoneLabel(phone.type) }}</div>
+              <a :href="`tel:${phone.value}`" class="contact-link detail-field-value">{{ phone.value }}</a>
+            </div>
+          </div>
+
+          <div v-if="contact.organization" class="detail-field">
+            <div class="detail-field-label">{{ $gettext('Organisation') }}</div>
+            <div class="detail-field-value">{{ contact.organization }}</div>
+          </div>
+
+          <div v-if="contact.title" class="detail-field">
+            <div class="detail-field-label">{{ $gettext('Title') }}</div>
+            <div class="detail-field-value">{{ contact.title }}</div>
+          </div>
+        </div>
+
+        <!-- Name details -->
+        <div
+          v-if="contact.firstName || contact.lastName || contact.prefix || contact.suffix || contact.middleName"
+          class="detail-card"
+        >
+          <h2 class="detail-card-title">{{ $gettext('Name') }}</h2>
+          <div v-if="contact.prefix" class="detail-field">
+            <div class="detail-field-label">{{ $gettext('Prefix') }}</div>
+            <div class="detail-field-value">{{ contact.prefix }}</div>
+          </div>
+          <div v-if="contact.firstName" class="detail-field">
+            <div class="detail-field-label">{{ $gettext('First name') }}</div>
+            <div class="detail-field-value">{{ contact.firstName }}</div>
+          </div>
+          <div v-if="contact.middleName" class="detail-field">
+            <div class="detail-field-label">{{ $gettext('Middle name') }}</div>
+            <div class="detail-field-value">{{ contact.middleName }}</div>
+          </div>
+          <div v-if="contact.lastName" class="detail-field">
+            <div class="detail-field-label">{{ $gettext('Last name') }}</div>
+            <div class="detail-field-value">{{ contact.lastName }}</div>
+          </div>
+          <div v-if="contact.suffix" class="detail-field">
+            <div class="detail-field-label">{{ $gettext('Suffix') }}</div>
+            <div class="detail-field-value">{{ contact.suffix }}</div>
+          </div>
+        </div>
+
+        <!-- Addresses -->
+        <div v-if="contact.addresses.length" class="detail-card">
+          <h2 class="detail-card-title">{{ $gettext('Addresses') }}</h2>
+          <div v-for="(addr, i) in contact.addresses" :key="i" class="detail-field">
+            <div class="detail-field-label">
+              {{ $gettext('Address') }}
+              <span v-if="addr.type" class="contact-badge">{{ addr.type }}</span>
+            </div>
+            <address class="detail-field-value detail-address">
+              <span v-if="addr.street">{{ addr.street }}<br /></span>
+              <span v-if="addr.postalCode || addr.city">{{ [addr.postalCode, addr.city].filter(Boolean).join(' ') }}<br /></span>
+              <span v-if="addr.region">{{ addr.region }}<br /></span>
+              <span v-if="addr.country">{{ addr.country }}</span>
+            </address>
+          </div>
+        </div>
+
+        <!-- Groups -->
+        <div v-if="contact.categories?.length" class="detail-card">
+          <h2 class="detail-card-title">{{ $gettext('Groups') }}</h2>
+          <div class="detail-categories">
+            <span v-for="cat in contact.categories" :key="cat" class="detail-category-chip">{{ cat }}</span>
+          </div>
+        </div>
+
+        <!-- Notes -->
+        <div v-if="contact.note" class="detail-card">
+          <h2 class="detail-card-title">{{ $gettext('Notes') }}</h2>
+          <p class="detail-note">{{ contact.note }}</p>
+        </div>
+
       </div>
 
       <!-- Edit dialog -->
@@ -232,6 +253,14 @@ const contact = computed<Contact | undefined>(() => findByUid(currentUid.value))
 // Navigate in the same order as the list (sorted/filtered at time of opening)
 const navList = computed(() => navigationList.value)
 const currentIndex = computed(() => navList.value.findIndex((c) => c.uid === currentUid.value))
+
+const accentColor = computed(() => stringToColor(contact.value?.displayName ?? ''))
+
+const primaryAddress = computed(() => {
+  const a = contact.value?.addresses[0]
+  if (!a) return null
+  return [a.city, a.country].filter(Boolean).join(', ')
+})
 
 function goBack() {
   router.push('/contacts-test/list')
@@ -374,40 +403,39 @@ function avatarStyle(c: Contact): Record<string, string> {
   text-align: center;
 }
 
-/* --- Two-column layout --- */
-.detail-layout {
-  display: grid;
-  grid-template-columns: 220px 1fr;
-  gap: 2rem;
-  align-items: start;
-  flex: 1;
-  min-height: 0;
-}
-
-/* --- Left sidebar --- */
-.detail-sidebar {
+/* --- Business Card --- */
+.bcard {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  padding: 1.5rem 1rem;
   background: var(--oc-color-background-highlight);
   border: 1px solid var(--oc-color-border);
-  border-radius: 0.5rem;
-  position: sticky;
-  top: 0;
+  border-left: 5px solid var(--bcard-accent);
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  margin-bottom: 2rem;
 }
 
-.detail-avatar {
-  width: 6rem;
-  height: 6rem;
+.bcard-avatar-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 2.5rem;
+  background: color-mix(in srgb, var(--bcard-accent) 12%, var(--oc-color-background-highlight));
+  border-right: 1px solid var(--oc-color-border);
+  flex-shrink: 0;
+}
+
+.bcard-avatar {
+  width: 7rem;
+  height: 7rem;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
   flex-shrink: 0;
-  margin-bottom: 1rem;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.18);
+  border: 3px solid rgba(255, 255, 255, 0.55);
 }
 
 .avatar-img {
@@ -417,73 +445,77 @@ function avatarStyle(c: Contact): Record<string, string> {
 }
 
 .avatar-initials {
-  font-size: 2rem;
+  font-size: 2.5rem;
   font-weight: 700;
   color: #fff;
   line-height: 1;
 }
 
-.detail-name {
-  font-size: 1.2rem;
+.bcard-body {
+  flex: 1;
+  padding: 1.75rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  min-width: 0;
+}
+
+.bcard-name {
+  font-size: 1.75rem;
   font-weight: 700;
-  margin: 0 0 0.25rem;
-  word-break: break-word;
+  margin: 0;
+  letter-spacing: -0.02em;
   color: var(--oc-color-text-default);
-  line-height: 1.3;
+  line-height: 1.2;
 }
 
-.detail-subtitle {
-  font-size: 0.85rem;
+.bcard-subtitle {
+  font-size: 0.9rem;
   color: var(--oc-color-text-muted);
-  margin: 0.1rem 0 0;
+  margin: 0.2rem 0 0;
 }
 
-.detail-org {
+.bcard-org {
   font-weight: 600;
 }
 
-.detail-actions {
+.bcard-sep {
+  opacity: 0.4;
+}
+
+.bcard-contacts {
   display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  width: 100%;
-  margin-top: 1.25rem;
+  flex-wrap: wrap;
+  gap: 0.35rem 2rem;
 }
 
-.detail-action-btn {
-  width: 100%;
-  justify-content: center;
-}
-
-.detail-action-link {
+.bcard-contact-row {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
   gap: 0.4rem;
-  width: 100%;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid var(--oc-color-swatch-brand-default);
-  border-radius: 0.25rem;
-  text-decoration: none;
   font-size: 0.875rem;
-  font-family: inherit;
-  font-weight: 400;
-  color: var(--oc-color-swatch-brand-default);
-  background: transparent;
-  box-sizing: border-box;
-  cursor: pointer;
+  color: var(--oc-color-text-muted);
+  text-decoration: none;
 }
 
-.detail-action-link:hover {
-  background: color-mix(in srgb, var(--oc-color-swatch-brand-default) 10%, transparent);
+a.bcard-contact-row:hover {
+  color: var(--bcard-accent);
 }
 
-/* --- Right: cards --- */
-.detail-body {
+.bcard-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--oc-color-border);
+  margin-top: auto;
+}
+
+/* --- Detail cards --- */
+.detail-cards {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  overflow-y: auto;
 }
 
 .detail-card {
