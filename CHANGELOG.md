@@ -23,7 +23,7 @@ All notable changes to this project will be documented in this file.
 - `deploy.sh`: use `docker compose restart` instead of `up -d` so OpenCloud always re-reads manifest
 - `deploy.sh`: restart Traefik after OpenCloud to prevent routing outages
 
-## [0.2.0] – 2026-03-xx
+## [0.2.0] – 2026-04-05
 
 ### Added
 - Version footer in ContactsView and ContactDetailView
@@ -48,14 +48,14 @@ All notable changes to this project will be documented in this file.
 - CardDAV import performance: sliding window concurrency, sequential writes
 - Security hardening: CardDAV URL validation, photo URL handling, credential leak fixes
 
-## [0.1.1] – 2026-xx-xx
+## [0.1.1] – 2026-04-04
 
 ### Fixed
 - Various stability and routing fixes
 - Named route navigation, keyboard handler and GIF support in AvatarUpload
 - Contact detail: email/call link styling aligned with oc-button
 
-## [0.1.0] – 2026-xx-xx
+## [0.1.0] – 2026-04-04
 
 ### Added
 - Initial release: OpenCloud Contacts web extension
