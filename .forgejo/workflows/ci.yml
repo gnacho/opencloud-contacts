@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  ci:
+    name: Build / Test
+    runs-on: docker
+    container:
+      image: node:20-alpine
+
+    steps:
+      - name: Install system deps
+        run: apk add --no-cache git
+
+      - name: Checkout
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git clone "https://x-access-token:${GITHUB_TOKEN}@${GITHUB_SERVER_URL#https://}/${{ github.repository }}.git" .
+          git checkout ${{ github.sha }}
+
+      - name: Install pnpm
+        run: corepack enable && corepack prepare pnpm@latest --activate
+
+      - name: Install packages
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Test
+        run: pnpm test
