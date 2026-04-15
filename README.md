@@ -130,4 +130,4 @@ Covers: authentication flow, CardDAV API, routing quirks, known pitfalls, server
 
 ## License
 
-Apache-2.0
+GPL-3.0-or-later

@@ -3,7 +3,7 @@
   "version": "0.3.1",
   "private": true,
   "description": "OpenCloud Contacts App – reads contacts from Radicale via CardDAV",
-  "license": "Apache-2.0",
+  "license": "GPL-3.0-or-later",
   "scripts": {
     "build": "vite build",
     "build:watch": "vite build --watch",
