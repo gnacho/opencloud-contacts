@@ -103,7 +103,7 @@ export function contactToVCard(contact: Contact): string {
   if (contact.photoUrl?.startsWith('data:')) {
     const match = contact.photoUrl.match(/^data:image\/(\w+);base64,(.+)$/)
     if (match) {
-      out.push(`PHOTO;ENCODING=b;TYPE=${match[1].toUpperCase()}:${match[2]}`)
+      push(`PHOTO;ENCODING=b;TYPE=${match[1].toUpperCase()}:${match[2]}`)
     }
   }
 
