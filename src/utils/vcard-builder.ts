@@ -98,11 +98,18 @@ export function contactToVCard(contact: Contact): string {
 
   if (contact.note) push(`NOTE:${esc(contact.note)}`)
 
-  // Photo: vCard 4.0 inline data URI — no ENCODING param needed.
-  // Avoids Radicale/vobject rejecting ENCODING=b and ENCODING=BASE64.
-  // External URLs are not serialized to prevent third-party tracking.
-  if (contact.photoUrl?.match(/^data:image\/\w+;base64,/)) {
-    push(`PHOTO:${contact.photoUrl}`)
+  // Photo: vCard 3.0 inline base64 (ENCODING=b), intentionally NOT folded.
+  // Radicale/vobject corrupts folded base64: it doesn't unfold CRLF+SP continuation
+  // lines before base64-decoding, so chunk boundaries corrupt the binary data.
+  // DAVx5 also sends PHOTO unfolded — matching that behaviour avoids the bug.
+  // vCard 4.0 data URIs are not used because vobject splits on ',' and drops the payload.
+  if (contact.photoUrl?.match(/^data:image\/(\w+);base64,/)) {
+    const mimeMatch = contact.photoUrl.match(/^data:image\/(\w+);base64,(.+)$/)
+    if (mimeMatch) {
+      const mediaType = mimeMatch[1].toUpperCase()
+      const base64Data = mimeMatch[2]
+      out.push(`PHOTO;ENCODING=b;TYPE=${mediaType}:${base64Data}`)
+    }
   }
 
   out.push('END:VCARD')

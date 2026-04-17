@@ -2,12 +2,17 @@ import type { Contact, ContactEmail, ContactPhone, ContactAddress } from '../typ
 
 /**
  * Unfolds vCard lines: continuation lines start with a space or tab.
- * QUOTED-PRINTABLE soft-breaks (=\r\n + optional whitespace) are stripped
- * first so the QP escape character is not left dangling after standard unfold.
+ * QUOTED-PRINTABLE soft-breaks (=\r\n) are stripped when NOT followed by a
+ * new property line, to avoid merging base64 padding "=" at line-end with the
+ * next property (e.g. END:VCARD) and corrupting binary values like PHOTO.
  */
 function unfold(raw: string): string {
   return raw
-    .replace(/=\r\n[ \t]?/g, '')   // QP soft-break (RFC 2045 §6.7)
+    // QP soft-break (RFC 2045 §6.7): strip =\r\n only when NOT followed by a new
+    // property line (PROPNAME: or PROPNAME;). Without this guard, base64 padding
+    // "=" at the end of a PHOTO line would cause the following END:VCARD to be
+    // merged into the base64 value, corrupting the photo.
+    .replace(/=\r\n(?![A-Z][A-Z0-9-]*[;:])/g, '')
     .replace(/\r\n[ \t]/g, '')     // standard vCard fold
     .replace(/\n[ \t]/g, '')       // LF-only fold
 }
@@ -242,6 +247,10 @@ export function parseVCard(raw: string, uid: string): Contact {
       }
 
       case 'PHOTO': {
+        // Only accept the first PHOTO property — skip subsequent ones so a
+        // valid inline base64 photo (e.g. ENCODING=b from DAVx5) is not
+        // overwritten by a stale or broken second PHOTO line.
+        if (contact.photoUrl) break
         const valueType = params['VALUE']?.toUpperCase()
         if (encoding === 'B' || encoding === 'BASE64') {
           // Inline base64 — vCard 3.0 standard (ENCODING=b or ENCODING=BASE64)
