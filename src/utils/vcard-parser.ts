@@ -12,7 +12,7 @@ function unfold(raw: string): string {
     // property line (PROPNAME: or PROPNAME;). Without this guard, base64 padding
     // "=" at the end of a PHOTO line would cause the following END:VCARD to be
     // merged into the base64 value, corrupting the photo.
-    .replace(/=\r\n(?![A-Z][A-Z0-9-]*[;:])/g, '')
+    .replace(/=\r\n[ \t]?(?![A-Z][A-Z0-9-]*[;:])/g, '')
     .replace(/\r\n[ \t]/g, '')     // standard vCard fold
     .replace(/\n[ \t]/g, '')       // LF-only fold
 }
