@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.2] – 2026-04-17
+
+### Fixed
+- PHOTO parsing: `unfold()` no longer strips base64 padding `=` at line-end as
+  a QP soft-break, which was merging `END:VCARD` into the base64 value and
+  corrupting photos after a page reload
+- PHOTO parsing: first valid PHOTO property wins; subsequent PHOTO lines are
+  ignored so a stale or broken second PHOTO cannot overwrite a good one
+- PHOTO serialization: write `PHOTO;ENCODING=b;TYPE=…` (vCard 3.0 inline
+  base64) instead of a vCard 4.0 data URI — Radicale/vobject was splitting on
+  the comma in `data:image/jpeg;base64,…` and dropping the payload
+
 ## [0.3.1] – 2026-04-14
 
 ### Added
