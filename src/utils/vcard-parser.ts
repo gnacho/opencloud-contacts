@@ -248,8 +248,10 @@ export function parseVCard(raw: string, uid: string): Contact {
           const mediaType = (params['TYPE']?.split(/[,;]/)[0] ?? 'jpeg').toLowerCase()
           contact.photoUrl = decodeBase64Photo(decoded, `image/${mediaType}`)
         } else if (decoded.trim().startsWith('data:')) {
-          // Inline data URI — vCard 4.0 (DAVx5, modern clients)
-          contact.photoUrl = decoded.trim()
+          // Inline data URI — vCard 4.0 (DAVx5, modern clients).
+          // Radicale bug #1863: incorrectly escapes ';' as '\;' in URI values.
+          // unescapeVCard fixes '\;' → ';' so the data URI stays valid.
+          contact.photoUrl = unescapeVCard(decoded.trim())
         } else if (valueType === 'URI' || valueType === 'URL' || decoded.startsWith('http')) {
           // External URL — discard to prevent third-party tracking requests
         } else {
