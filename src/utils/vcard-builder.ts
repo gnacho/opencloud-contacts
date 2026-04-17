@@ -98,13 +98,11 @@ export function contactToVCard(contact: Contact): string {
 
   if (contact.note) push(`NOTE:${esc(contact.note)}`)
 
-  // Photo: inline Base64 only — external http URLs are not serialized to
-  // prevent re-introducing tracking URLs that the parser already rejects.
-  if (contact.photoUrl?.startsWith('data:')) {
-    const match = contact.photoUrl.match(/^data:image\/(\w+);base64,(.+)$/)
-    if (match) {
-      push(`PHOTO;ENCODING=BASE64;TYPE=${match[1].toUpperCase()}:${match[2]}`)
-    }
+  // Photo: vCard 4.0 inline data URI — no ENCODING param needed.
+  // Avoids Radicale/vobject rejecting ENCODING=b and ENCODING=BASE64.
+  // External URLs are not serialized to prevent third-party tracking.
+  if (contact.photoUrl?.match(/^data:image\/\w+;base64,/)) {
+    push(`PHOTO:${contact.photoUrl}`)
   }
 
   out.push('END:VCARD')
