@@ -287,6 +287,25 @@ export function parseVCard(raw: string, uid: string): Contact {
 }
 
 /**
+ * Decodes XML character entities in vCard text extracted from a CardDAV response.
+ * Radicale serializes CR as &#13; (required by XML spec to prevent line-end
+ * normalisation). Without decoding, folded vCard lines are not unfolded correctly
+ * and binary fields like PHOTO get &#13; injected into their base64 data.
+ */
+function decodeXmlEntities(text: string): string {
+  return text
+    .replace(/&#13;/g, '\r')
+    .replace(/&#10;/g, '\n')
+    .replace(/&#xD;/gi, '\r')
+    .replace(/&#xA;/gi, '\n')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+}
+
+/**
  * Parses a CardDAV REPORT XML response and returns all contacts.
  * Uses regex to handle namespace prefixes reliably (e.g. <d:response>, <CR:address-data>).
  */
@@ -303,7 +322,7 @@ export function parseCardDAVReport(xmlText: string): { href: string; vcardRaw: s
     const href = hrefMatch ? hrefMatch[1].trim() : ''
 
     const addrMatch = /<[^:>]*:?address-data[^>]*>([\s\S]*?)<\/[^:>]*:?address-data>/i.exec(block)
-    const vcardRaw = addrMatch ? addrMatch[1].trim() : ''
+    const vcardRaw = addrMatch ? decodeXmlEntities(addrMatch[1].trim()) : ''
 
     if (vcardRaw && vcardRaw.includes('BEGIN:VCARD')) {
       results.push({ href, vcardRaw })
