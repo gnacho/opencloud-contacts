@@ -142,7 +142,10 @@ export function parseVCard(raw: string, uid: string): Contact {
     if (encoding === 'QUOTED-PRINTABLE') {
       decoded = decodeQuotedPrintable(value)
       if (params['CHARSET']?.toUpperCase() === 'UTF-8') {
-        try { decoded = decodeURIComponent(escape(decoded)) } catch { /* keep as-is */ }
+        try {
+          const bytes = Uint8Array.from(decoded, c => c.charCodeAt(0))
+          decoded = new TextDecoder().decode(bytes)
+        } catch { /* keep as-is */ }
       }
     }
 
@@ -241,14 +244,25 @@ export function parseVCard(raw: string, uid: string): Contact {
       case 'PHOTO': {
         const valueType = params['VALUE']?.toUpperCase()
         if (encoding === 'B' || encoding === 'BASE64') {
-          // Inline base64 photo — safe, no external request
+          // Inline base64 — vCard 3.0 standard (ENCODING=b or ENCODING=BASE64)
           const mediaType = (params['TYPE']?.split(/[,;]/)[0] ?? 'jpeg').toLowerCase()
           contact.photoUrl = decodeBase64Photo(decoded, `image/${mediaType}`)
         } else if (decoded.trim().startsWith('data:')) {
-          // Inline data URI — safe, no external request
+          // Inline data URI — vCard 4.0 (DAVx5, modern clients)
           contact.photoUrl = decoded.trim()
         } else if (valueType === 'URI' || valueType === 'URL' || decoded.startsWith('http')) {
           // External URL — discard to prevent third-party tracking requests
+        } else {
+          // Fallback: raw base64 without ENCODING param (some clients omit it).
+          // Validate: only base64 chars, at least 50 chars to avoid false positives.
+          const clean = decoded.replace(/\s/g, '')
+          if (clean.length >= 50 && /^[A-Za-z0-9+/]+=*$/.test(clean)) {
+            const rawType = params['TYPE']?.split(/[,;]/)[0]
+            const mediaType = rawType
+              ? rawType.includes('/') ? rawType.toLowerCase() : `image/${rawType.toLowerCase()}`
+              : 'image/jpeg'
+            contact.photoUrl = `data:${mediaType};base64,${clean}`
+          }
         }
         break
       }
