@@ -63,7 +63,7 @@ pnpm build
 Copy the contents of `dist/` to your OpenCloud apps directory:
 
 ```
-config/opencloud/apps/contacts-test/
+config/opencloud/apps/opencloud-contacts/
 ```
 
 Then restart the OpenCloud container.

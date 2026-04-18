@@ -16,7 +16,7 @@ export default defineWebApplication({
     const { $gettext } = useGettext()
 
     const appInfo = {
-      id: 'contacts-test',
+      id: 'opencloud-contacts',
       name: $gettext('Contacts'),
       icon: 'contacts-book',
       color: '#0063BE'
