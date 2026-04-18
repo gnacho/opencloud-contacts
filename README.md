@@ -2,7 +2,7 @@
 
 A web extension for [OpenCloud](https://opencloud.eu) that provides a full-featured contacts management app using CardDAV (Radicale).
 
-[![AI Assisted](https://img.shields.io/badge/AI%20assisted-Claude%20Code-orange?logo=anthropic)](https://claude.ai) [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![AI Assisted](https://img.shields.io/badge/AI%20assisted-Claude%20Code-orange?logo=anthropic)](https://claude.ai) [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](LICENSE)
 
 > [!IMPORTANT]
 > This project is an independent, community-built tool and is not affiliated with, endorsed by, or associated with the [OpenCloud project](https://opencloud.eu) in any way.
@@ -130,4 +130,4 @@ Covers: authentication flow, CardDAV API, routing quirks, known pitfalls, server
 
 ## License
 
-GPL-3.0-or-later
+GPL-3.0-only
