@@ -59,16 +59,6 @@ config/opencloud/apps/opencloud-contacts/
 
 Then restart the OpenCloud container.
 
-## Development & Deployment
-
-Edit `deploy.sh` with your server details, then run:
-
-```bash
-./deploy.sh
-```
-
-This will build the app, upload `dist/` via rsync and restart the OpenCloud container.
-
 ## Authentication
 
 OpenCloud uses Bearer tokens (OAuth2/OIDC via Keycloak). Radicale only accepts HTTP Basic Auth. The app handles this transparently:
