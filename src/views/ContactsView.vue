@@ -381,7 +381,7 @@ function onCreated(contact: Contact) {
 
 function openContact(contact: Contact) {
   setNavigationList(filteredContacts.value)
-  router.push(`/contacts-test/contact/${encodeURIComponent(contact.uid)}`)
+  router.push(`/opencloud-contacts/contact/${encodeURIComponent(contact.uid)}`)
 }
 
 const columns = computed(() => [

@@ -155,7 +155,7 @@ watch(() => route.path, (path) => {
 // On user switch navigate to the list; ContactsView will reset the store and reload.
 watch(() => userStore.user?.id, (id, prevId) => {
   if (prevId && id !== prevId) {
-    router.push('/contacts-test/list')
+    router.push('/opencloud-contacts/list')
   }
 })
 
@@ -174,7 +174,7 @@ const primaryAddress = computed(() => {
 })
 
 function goBack() {
-  router.push('/contacts-test/list')
+  router.push('/opencloud-contacts/list')
 }
 
 function onSaved(updated: Contact) {
@@ -213,7 +213,7 @@ async function confirmDelete() {
     // Remove from both stores so prev/next navigation stays consistent
     setContacts(contacts.value.filter((x) => x.uid !== c.uid))
     setNavigationList(navigationList.value.filter((x) => x.uid !== c.uid))
-    router.push('/contacts-test/list')
+    router.push('/opencloud-contacts/list')
   } catch (err) {
     window.alert(err instanceof Error ? err.message : String(err))
   } finally {
@@ -226,7 +226,7 @@ function goPrev() {
   if (idx > 0) {
     const target = navList.value[idx - 1]
     currentUid.value = target.uid
-    router.push(`/contacts-test/contact/${encodeURIComponent(target.uid)}`)
+    router.push(`/opencloud-contacts/contact/${encodeURIComponent(target.uid)}`)
   }
 }
 
@@ -235,7 +235,7 @@ function goNext() {
   if (idx < navList.value.length - 1) {
     const target = navList.value[idx + 1]
     currentUid.value = target.uid
-    router.push(`/contacts-test/contact/${encodeURIComponent(target.uid)}`)
+    router.push(`/opencloud-contacts/contact/${encodeURIComponent(target.uid)}`)
   }
 }
 
