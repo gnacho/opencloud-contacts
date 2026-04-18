@@ -2,11 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [0.4.0] – 2026-04-18
 
 ### Changed
-- App-ID renamed from `contacts-test` to `opencloud-contacts` — update your
-  apps directory accordingly: `config/opencloud/apps/opencloud-contacts/`
+- **Breaking:** App-ID renamed from `contacts-test` to `opencloud-contacts`.
+  Existing installations must rename their apps directory:
+  `config/opencloud/apps/contacts-test/` → `config/opencloud/apps/opencloud-contacts/`
 
 ## [0.3.2] – 2026-04-17
 
