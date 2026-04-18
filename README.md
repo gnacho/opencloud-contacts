@@ -23,30 +23,21 @@ A web extension for [OpenCloud](https://opencloud.eu) that provides a full-featu
 - CardDAV via Radicale (OpenCloud built-in)
 - pnpm
 
-## Prerequisites
-
-### docker-compose.yml
-
-OpenCloud Web automatically loads extensions from a local directory — no `OC_APPS_DIR` variable needed. The default bind mount to `config/opencloud/apps` is sufficient:
-
-```yaml
-services:
-  opencloud:
-    volumes:
-      - ./config/opencloud/apps:/etc/ocis/apps:ro
-```
-
-### CSP (csp.yaml)
-
-No `unsafe-eval` needed. Vite 7 production builds do not use `eval()`.
-
-```yaml
-script-src:
-  - 'self'
-  - 'unsafe-inline'
-```
-
 ## Installation
+
+### Option 1: Zip download (recommended)
+
+1. Download `contacts-vX.Y.Z.zip` from the [latest release](https://forgejo.linux-nerds.org/frank/opencloud-contacts/releases)
+2. Extract the zip — it contains an `opencloud-contacts/` folder
+3. Copy that folder into your OpenCloud apps directory:
+   ```
+   config/opencloud/apps/opencloud-contacts/
+   ```
+4. Restart the OpenCloud container
+
+OpenCloud will pick up the new app automatically on the next start. No changes to `docker-compose.yml` or `csp.yaml` are required.
+
+### Option 2: Build from source
 
 ```bash
 # Clone the repository
@@ -60,7 +51,7 @@ pnpm install
 pnpm build
 ```
 
-Copy the contents of `dist/` to your OpenCloud apps directory:
+Copy the contents of `dist/` into your OpenCloud apps directory:
 
 ```
 config/opencloud/apps/opencloud-contacts/
@@ -86,7 +77,7 @@ OpenCloud uses Bearer tokens (OAuth2/OIDC via Keycloak). Radicale only accepts H
 2. Exchanges it for an App Token via `POST /auth-app/tokens`
 3. Uses `Basic base64(username:app-token)` for all CardDAV requests
 
-The app token is cached in `sessionStorage` and refreshed automatically on auth errors.
+The app token is cached in `localStorage` and refreshed automatically on auth errors.
 
 ## CSV Import
 
@@ -101,6 +92,7 @@ Supports Thunderbird address book exports (CSV, German column headers). To impor
 
 ```
 src/
+├── config.ts                   # App-ID constant (APP_ID)
 ├── index.ts                    # App entry point (defineWebApplication)
 ├── types/contact.ts            # TypeScript interfaces
 ├── views/
@@ -115,7 +107,7 @@ src/
 │   └── useContactStore.ts      # Shared reactive state
 └── utils/
     ├── vcard-parser.ts         # vCard 3/4 → Contact
-    ├── vcard-builder.ts        # Contact → vCard 4.0
+    ├── vcard-builder.ts        # Contact → vCard 3.0
     └── csv-importer.ts         # Thunderbird CSV → vCard
 ```
 
