@@ -128,6 +128,7 @@ import { useCardDAV } from '../composables/useCardDAV'
 import { contactToVCard } from '../utils/vcard-builder'
 import EditContactDialog from '../components/EditContactDialog.vue'
 import type { Contact } from '../types/contact'
+import { APP_ID } from '../config'
 
 const { $gettext } = useGettext()
 const router = useRouter()
@@ -155,7 +156,7 @@ watch(() => route.path, (path) => {
 // On user switch navigate to the list; ContactsView will reset the store and reload.
 watch(() => userStore.user?.id, (id, prevId) => {
   if (prevId && id !== prevId) {
-    router.push('/opencloud-contacts/list')
+    router.push(`/${APP_ID}/list`)
   }
 })
 
@@ -174,7 +175,7 @@ const primaryAddress = computed(() => {
 })
 
 function goBack() {
-  router.push('/opencloud-contacts/list')
+  router.push(`/${APP_ID}/list`)
 }
 
 function onSaved(updated: Contact) {
@@ -213,7 +214,7 @@ async function confirmDelete() {
     // Remove from both stores so prev/next navigation stays consistent
     setContacts(contacts.value.filter((x) => x.uid !== c.uid))
     setNavigationList(navigationList.value.filter((x) => x.uid !== c.uid))
-    router.push('/opencloud-contacts/list')
+    router.push(`/${APP_ID}/list`)
   } catch (err) {
     window.alert(err instanceof Error ? err.message : String(err))
   } finally {
@@ -226,7 +227,7 @@ function goPrev() {
   if (idx > 0) {
     const target = navList.value[idx - 1]
     currentUid.value = target.uid
-    router.push(`/opencloud-contacts/contact/${encodeURIComponent(target.uid)}`)
+    router.push(`/${APP_ID}/contact/${encodeURIComponent(target.uid)}`)
   }
 }
 
@@ -235,7 +236,7 @@ function goNext() {
   if (idx < navList.value.length - 1) {
     const target = navList.value[idx + 1]
     currentUid.value = target.uid
-    router.push(`/opencloud-contacts/contact/${encodeURIComponent(target.uid)}`)
+    router.push(`/${APP_ID}/contact/${encodeURIComponent(target.uid)}`)
   }
 }
 

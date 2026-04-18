@@ -10,13 +10,14 @@ import '@opencloud-eu/extension-sdk/tailwind.css'
 import { RouteRecordRaw } from 'vue-router'
 import { computed } from 'vue'
 import { useGettext } from 'vue3-gettext'
+import { APP_ID } from './config'
 
 export default defineWebApplication({
   setup(args) {
     const { $gettext } = useGettext()
 
     const appInfo = {
-      id: 'opencloud-contacts',
+      id: APP_ID,
       name: $gettext('Contacts'),
       icon: 'contacts-book',
       color: '#0063BE'

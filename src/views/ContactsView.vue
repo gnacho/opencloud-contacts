@@ -281,6 +281,7 @@ import { exportContactsToCSV } from '../utils/csv-exporter'
 import ImportDialog from '../components/ImportDialog.vue'
 import NewContactDialog from '../components/NewContactDialog.vue'
 import type { Contact } from '../types/contact'
+import { APP_ID } from '../config'
 
 const { $gettext } = useGettext()
 const { loading, error, loadContacts, updateContactsBatch, deleteAllContacts } = useCardDAV()
@@ -381,7 +382,7 @@ function onCreated(contact: Contact) {
 
 function openContact(contact: Contact) {
   setNavigationList(filteredContacts.value)
-  router.push(`/opencloud-contacts/contact/${encodeURIComponent(contact.uid)}`)
+  router.push(`/${APP_ID}/contact/${encodeURIComponent(contact.uid)}`)
 }
 
 const columns = computed(() => [
