@@ -102,16 +102,16 @@ export function useCardDAV() {
       if (!resp.ok) { console.warn('[purge] GET failed', resp.status); return }
       const tokens = await resp.json()
       console.log('[purge] all tokens:', JSON.stringify(tokens))
-      const mine = (tokens as Array<{ id: string; label: string }>)
+      const mine = (tokens as Array<{ token: string; label: string }>)
         .filter((t) => t.label === 'contacts-app')
       console.log('[purge] to delete:', mine.length)
       await Promise.all(
         mine.map(async (t) => {
-          const r = await fetch(`/auth-app/tokens/${t.id}`, {
+          const r = await fetch(`/auth-app/tokens/${t.token}`, {
             method: 'DELETE',
             headers: { Authorization: `Bearer ${bearerToken}` }
           })
-          console.log('[purge] DELETE', t.id, r.status)
+          console.log('[purge] DELETE', t.token, r.status)
         })
       )
     } catch (e) {
