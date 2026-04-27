@@ -107,7 +107,7 @@ export function useCardDAV() {
       console.log('[purge] to delete:', mine.length)
       await Promise.all(
         mine.map(async (t) => {
-          const r = await fetch(`/auth-app/tokens/${t.token}`, {
+          const r = await fetch(`/auth-app/tokens?token=${encodeURIComponent(t.token)}`, {
             method: 'DELETE',
             headers: { Authorization: `Bearer ${bearerToken}` }
           })
