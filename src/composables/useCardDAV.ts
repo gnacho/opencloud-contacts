@@ -43,8 +43,8 @@ let loadEpoch = 0
 // from each triggering a separate POST /auth-app/tokens.
 const tokenRequestsInFlight = new Map<string, Promise<string>>()
 
-// Track which users have had their stale tokens purged this session.
-const tokensPurgedThisSession = new Set<string>()
+// Track which users have had stale tokens purged this session.
+const purgedThisSession = new Set<string>()
 
 export function useCardDAV() {
   const authStore = useAuthStore()
@@ -143,14 +143,6 @@ export function useCardDAV() {
     const key = appTokenKey(userId)
     const cached = localStorage.getItem(key)
 
-    // Purge stale server-side tokens once per session, even when a cached
-    // token exists — otherwise old tokens accumulate until a cache miss.
-    if (cached && !tokensPurgedThisSession.has(userId)) {
-      tokensPurgedThisSession.add(userId)
-      const bearerToken = authStore.accessToken
-      if (bearerToken) purgeContactsAppTokens(bearerToken).catch(() => {})
-    }
-
     if (cached) return cached
 
     // Deduplicate concurrent token creation requests for the same user.
@@ -244,6 +236,15 @@ export function useCardDAV() {
 
     try {
       const appToken = await getAppToken()
+
+      // Purge stale contacts-app tokens once per session. Done here because
+      // the bearer token is guaranteed to be available after getAppToken().
+      const userId = userStore.user?.id
+      if (userId && !purgedThisSession.has(userId)) {
+        purgedThisSession.add(userId)
+        const bearerToken = authStore.accessToken
+        if (bearerToken) purgeContactsAppTokens(bearerToken).catch(() => {})
+      }
       const addressBooks = await discoverAddressBooks(appToken)
       const allContacts: Contact[] = []
 
