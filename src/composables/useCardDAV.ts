@@ -43,6 +43,9 @@ let loadEpoch = 0
 // from each triggering a separate POST /auth-app/tokens.
 const tokenRequestsInFlight = new Map<string, Promise<string>>()
 
+// Track which users have had their stale tokens purged this session.
+const tokensPurgedThisSession = new Set<string>()
+
 export function useCardDAV() {
   const authStore = useAuthStore()
   const userStore = useUserStore()
@@ -136,6 +139,15 @@ export function useCardDAV() {
     // Keyed per user so switching accounts never mixes tokens.
     const key = appTokenKey(userId)
     const cached = localStorage.getItem(key)
+
+    // Purge stale server-side tokens once per session, even when a cached
+    // token exists — otherwise old tokens accumulate until a cache miss.
+    if (cached && !tokensPurgedThisSession.has(userId)) {
+      tokensPurgedThisSession.add(userId)
+      const bearerToken = authStore.accessToken
+      if (bearerToken) purgeContactsAppTokens(bearerToken).catch(() => {})
+    }
+
     if (cached) return cached
 
     // Deduplicate concurrent token creation requests for the same user.
