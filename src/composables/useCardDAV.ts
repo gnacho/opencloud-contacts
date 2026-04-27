@@ -99,20 +99,23 @@ export function useCardDAV() {
       const resp = await fetch('/auth-app/tokens', {
         headers: { Authorization: `Bearer ${bearerToken}` }
       })
-      if (!resp.ok) return
-      const tokens = await resp.json() as Array<{ id: string; note: string }>
+      if (!resp.ok) { console.warn('[purge] GET failed', resp.status); return }
+      const tokens = await resp.json()
+      console.log('[purge] all tokens:', JSON.stringify(tokens))
+      const mine = (tokens as Array<{ id: string; note: string }>)
+        .filter((t) => t.note === 'contacts-app')
+      console.log('[purge] to delete:', mine.length)
       await Promise.all(
-        tokens
-          .filter((t) => t.note === 'contacts-app')
-          .map((t) =>
-            fetch(`/auth-app/tokens/${t.id}`, {
-              method: 'DELETE',
-              headers: { Authorization: `Bearer ${bearerToken}` }
-            })
-          )
+        mine.map(async (t) => {
+          const r = await fetch(`/auth-app/tokens/${t.id}`, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${bearerToken}` }
+          })
+          console.log('[purge] DELETE', t.id, r.status)
+        })
       )
-    } catch {
-      // Non-critical — ignore errors during cleanup
+    } catch (e) {
+      console.error('[purge] error:', e)
     }
   }
 
