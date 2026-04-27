@@ -233,9 +233,11 @@ export function useCardDAV() {
     const epoch = ++loadEpoch
     loading.value = true
     error.value = null
+    console.log('[loadContacts] start, userId:', userStore.user?.id, 'bearerToken:', !!authStore.accessToken)
 
     try {
       const appToken = await getAppToken()
+      console.log('[loadContacts] appToken ok, purged?', purgedThisSession.has(userStore.user?.id ?? ''))
 
       // Purge stale contacts-app tokens once per session. Done here because
       // the bearer token is guaranteed to be available after getAppToken().
@@ -243,6 +245,7 @@ export function useCardDAV() {
       if (userId && !purgedThisSession.has(userId)) {
         purgedThisSession.add(userId)
         const bearerToken = authStore.accessToken
+        console.log('[loadContacts] firing purge, bearerToken:', !!bearerToken)
         if (bearerToken) purgeContactsAppTokens(bearerToken).catch(() => {})
       }
       const addressBooks = await discoverAddressBooks(appToken)
