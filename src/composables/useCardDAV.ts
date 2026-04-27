@@ -102,8 +102,8 @@ export function useCardDAV() {
       if (!resp.ok) { console.warn('[purge] GET failed', resp.status); return }
       const tokens = await resp.json()
       console.log('[purge] all tokens:', JSON.stringify(tokens))
-      const mine = (tokens as Array<{ id: string; note: string }>)
-        .filter((t) => t.note === 'contacts-app')
+      const mine = (tokens as Array<{ id: string; label: string }>)
+        .filter((t) => t.label === 'contacts-app')
       console.log('[purge] to delete:', mine.length)
       await Promise.all(
         mine.map(async (t) => {
