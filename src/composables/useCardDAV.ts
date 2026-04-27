@@ -99,23 +99,18 @@ export function useCardDAV() {
       const resp = await fetch('/auth-app/tokens', {
         headers: { Authorization: `Bearer ${bearerToken}` }
       })
-      if (!resp.ok) { console.warn('[purge] GET failed', resp.status); return }
-      const tokens = await resp.json()
-      console.log('[purge] all tokens:', JSON.stringify(tokens))
-      const mine = (tokens as Array<{ token: string; label: string }>)
-        .filter((t) => t.label === 'contacts-app')
-      console.log('[purge] to delete:', mine.length)
+      if (!resp.ok) return
+      const tokens = await resp.json() as Array<{ token: string; label: string }>
       await Promise.all(
-        mine.map(async (t) => {
-          const r = await fetch(`/auth-app/tokens?token=${encodeURIComponent(t.token)}`, {
+        tokens
+          .filter((t) => t.label === 'contacts-app')
+          .map((t) => fetch(`/auth-app/tokens?token=${encodeURIComponent(t.token)}`, {
             method: 'DELETE',
             headers: { Authorization: `Bearer ${bearerToken}` }
-          })
-          console.log('[purge] DELETE', t.token, r.status)
-        })
+          }))
       )
-    } catch (e) {
-      console.error('[purge] error:', e)
+    } catch {
+      // Non-critical — ignore errors during cleanup
     }
   }
 
@@ -233,11 +228,8 @@ export function useCardDAV() {
     const epoch = ++loadEpoch
     loading.value = true
     error.value = null
-    console.log('[loadContacts] start, userId:', userStore.user?.id, 'bearerToken:', !!authStore.accessToken)
-
     try {
       const appToken = await getAppToken()
-      console.log('[loadContacts] appToken ok, purged?', purgedThisSession.has(userStore.user?.id ?? ''))
 
       // Purge stale contacts-app tokens once per session. Done here because
       // the bearer token is guaranteed to be available after getAppToken().
@@ -245,7 +237,6 @@ export function useCardDAV() {
       if (userId && !purgedThisSession.has(userId)) {
         purgedThisSession.add(userId)
         const bearerToken = authStore.accessToken
-        console.log('[loadContacts] firing purge, bearerToken:', !!bearerToken)
         if (bearerToken) purgeContactsAppTokens(bearerToken).catch(() => {})
       }
       const addressBooks = await discoverAddressBooks(appToken)
