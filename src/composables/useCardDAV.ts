@@ -100,10 +100,10 @@ export function useCardDAV() {
         headers: { Authorization: `Bearer ${bearerToken}` }
       })
       if (!resp.ok) return
-      const tokens = await resp.json() as Array<{ id: string; label: string }>
+      const tokens = await resp.json() as Array<{ id: string; note: string }>
       await Promise.all(
         tokens
-          .filter((t) => t.label === 'contacts-app')
+          .filter((t) => t.note === 'contacts-app')
           .map((t) =>
             fetch(`/auth-app/tokens/${t.id}`, {
               method: 'DELETE',
