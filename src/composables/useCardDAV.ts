@@ -29,9 +29,32 @@ const LIST_ITEMS_PROPFIND = `<?xml version="1.0" encoding="utf-8" ?>
 </D:propfind>`
 
 const APP_TOKEN_KEY_PREFIX = 'oc-contacts-app-token'
+const TOKEN_EXPIRY_MS = 24 * 60 * 60 * 1000 // matches server-side expiry=24h
+
+interface StoredToken { token: string; expiresAt: number }
 
 function appTokenKey(userId: string): string {
   return `${APP_TOKEN_KEY_PREFIX}-${userId}`
+}
+
+function loadStoredToken(userId: string): string | null {
+  try {
+    const raw = localStorage.getItem(appTokenKey(userId))
+    if (!raw) return null
+    const stored: StoredToken = JSON.parse(raw)
+    if (Date.now() >= stored.expiresAt) {
+      localStorage.removeItem(appTokenKey(userId))
+      return null
+    }
+    return stored.token
+  } catch {
+    return null
+  }
+}
+
+function saveToken(userId: string, token: string): void {
+  const stored: StoredToken = { token, expiresAt: Date.now() + TOKEN_EXPIRY_MS }
+  localStorage.setItem(appTokenKey(userId), JSON.stringify(stored))
 }
 
 // Module-level counter so concurrent loadContacts() calls across any component
@@ -43,7 +66,7 @@ let loadEpoch = 0
 // from each triggering a separate POST /auth-app/tokens.
 const tokenRequestsInFlight = new Map<string, Promise<string>>()
 
-// Track which users have had stale tokens purged this session.
+// Track which users have had expired tokens purged this session.
 const purgedThisSession = new Set<string>()
 
 export function useCardDAV() {
@@ -93,17 +116,18 @@ export function useCardDAV() {
     }
   }
 
-  /** Delete ALL contacts-app tokens before creating a new one to avoid accumulation. */
-  async function purgeContactsAppTokens(bearerToken: string): Promise<void> {
+  /** Delete expired contacts-app tokens to avoid accumulation without invalidating other devices. */
+  async function purgeExpiredAppTokens(bearerToken: string): Promise<void> {
     try {
       const resp = await fetch('/auth-app/tokens', {
         headers: { Authorization: `Bearer ${bearerToken}` }
       })
       if (!resp.ok) return
-      const tokens = await resp.json() as Array<{ token: string; label: string }>
+      const tokens = await resp.json() as Array<{ token: string; label: string; expiration_date: string }>
+      const now = new Date()
       await Promise.all(
         tokens
-          .filter((t) => t.label === 'contacts-app')
+          .filter((t) => t.label === 'contacts-app' && new Date(t.expiration_date) <= now)
           .map((t) => fetch(`/auth-app/tokens?token=${encodeURIComponent(t.token)}`, {
             method: 'DELETE',
             headers: { Authorization: `Bearer ${bearerToken}` }
@@ -116,7 +140,7 @@ export function useCardDAV() {
 
   /** Create a new app token via the auth-app API */
   async function createAppToken(bearerToken: string): Promise<string> {
-    await purgeContactsAppTokens(bearerToken)
+    await purgeExpiredAppTokens(bearerToken)
     const resp = await fetch('/auth-app/tokens?expiry=24h&label=contacts-app', {
       method: 'POST',
       headers: { Authorization: `Bearer ${bearerToken}` }
@@ -133,11 +157,7 @@ export function useCardDAV() {
     const userId = userStore.user?.id
     if (!userId) throw new Error('No user logged in')
 
-    // Persist in localStorage so the token survives browser restarts.
-    // Keyed per user so switching accounts never mixes tokens.
-    const key = appTokenKey(userId)
-    const cached = localStorage.getItem(key)
-
+    const cached = loadStoredToken(userId)
     if (cached) return cached
 
     // Deduplicate concurrent token creation requests for the same user.
@@ -148,7 +168,7 @@ export function useCardDAV() {
     if (!bearerToken) throw new Error('No access token available')
 
     const request = createAppToken(bearerToken).then((token) => {
-      localStorage.setItem(key, token)
+      saveToken(userId, token)
       tokenRequestsInFlight.delete(userId)
       return token
     }).catch((err) => {
@@ -237,7 +257,7 @@ export function useCardDAV() {
       if (userId && !purgedThisSession.has(userId)) {
         purgedThisSession.add(userId)
         const bearerToken = authStore.accessToken
-        if (bearerToken) purgeContactsAppTokens(bearerToken).catch(() => {})
+        if (bearerToken) purgeExpiredAppTokens(bearerToken).catch(() => {})
       }
       const addressBooks = await discoverAddressBooks(appToken)
       const allContacts: Contact[] = []
