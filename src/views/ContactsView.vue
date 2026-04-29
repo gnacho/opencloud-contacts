@@ -82,10 +82,22 @@
           {{ groupError }}
         </span>
 
+        <!-- Find duplicates -->
+        <oc-button
+          v-if="contacts.length"
+          :aria-label="$gettext('Find duplicate contacts')"
+          :title="$gettext('Find duplicate contacts')"
+          appearance="raw"
+          @click="openDuplicates"
+        >
+          <oc-icon name="git-merge" />
+        </oc-button>
+
         <!-- Delete all -->
         <oc-button
           v-if="contacts.length"
           :aria-label="$gettext('Delete all contacts')"
+          :title="$gettext('Delete all contacts')"
           appearance="raw"
           class="contacts-delete-all"
           @click="showDeleteAll = true"
@@ -96,6 +108,7 @@
         <!-- Reload -->
         <oc-button
           :aria-label="$gettext('Reload contacts')"
+          :title="$gettext('Reload contacts')"
           appearance="raw"
           class="contacts-reload"
           @click="loadContacts"
@@ -117,6 +130,14 @@
       v-if="showImport"
       @close="showImport = false"
       @done="onImportDone"
+    />
+
+    <!-- Duplicates dialog -->
+    <duplicates-dialog
+      v-if="showDuplicates"
+      :groups="duplicateGroups"
+      @close="showDuplicates = false"
+      @merged="onMerged"
     />
 
     <!-- Delete all confirmation dialog -->
@@ -280,8 +301,11 @@ import { contactToVCard } from '../utils/vcard-builder'
 import { exportContactsToCSV } from '../utils/csv-exporter'
 import ImportDialog from '../components/ImportDialog.vue'
 import NewContactDialog from '../components/NewContactDialog.vue'
+import DuplicatesDialog from '../components/DuplicatesDialog.vue'
 import type { Contact } from '../types/contact'
 import { APP_ID } from '../config'
+import { findDuplicates } from '../utils/duplicates'
+import type { DuplicateGroup } from '../utils/duplicates'
 
 const { $gettext } = useGettext()
 const { loading, error, loadContacts, updateContactsBatch, deleteAllContacts } = useCardDAV()
@@ -325,6 +349,19 @@ async function setDefaultGroup() {
   } finally {
     settingGroup.value = false
   }
+}
+
+const showDuplicates = ref(false)
+const duplicateGroups = ref<DuplicateGroup[]>([])
+
+function openDuplicates() {
+  duplicateGroups.value = findDuplicates(contacts.value)
+  showDuplicates.value = true
+}
+
+async function onMerged() {
+  await loadContacts()
+  duplicateGroups.value = findDuplicates(contacts.value)
 }
 
 const searchQuery = ref('')
