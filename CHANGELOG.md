@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.1] – 2026-04-29
+
+### Added
+- Duplicate detection: find contacts with identical names and review them grouped
+- Merge selected contacts within a group: multi-value fields (emails, phones,
+  categories) are unioned and deduplicated; scalar fields take the first
+  non-empty value from the selected contacts; the base contact's UID and href
+  are preserved
+- Preview step before confirming a single-group merge
+- "Merge all" button to merge all duplicate groups at once, with a confirmation
+  dialog before executing
+- Hover tooltips on icon-only toolbar buttons (duplicates, delete all, reload)
+
 ## [0.4.0] – 2026-04-18
 
 ### Changed

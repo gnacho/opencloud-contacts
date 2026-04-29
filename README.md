@@ -1,4 +1,4 @@
-# OpenCloud Contacts
+># OpenCloud Contacts
 
 A web extension for [OpenCloud](https://opencloud.eu) that provides a full-featured contacts management app using CardDAV (Radicale).
 
@@ -13,6 +13,7 @@ A web extension for [OpenCloud](https://opencloud.eu) that provides a full-featu
 - Sort by name, organisation, email or phone
 - Contact detail view with prev/next navigation
 - Create, edit and delete contacts
+- Find and merge duplicate contacts (single group or all at once)
 - Import contacts from Thunderbird CSV export
 - Fully integrated into the OpenCloud UI (left sidebar, app menu)
 
