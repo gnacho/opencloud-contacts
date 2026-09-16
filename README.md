@@ -1,6 +1,6 @@
 ># OpenCloud Contacts
 
-A web extension for [OpenCloud](https://opencloud.eu) that provides a full-featured contacts management app using CardDAV (Radicale).
+A CardDAV contacts web application for [OpenCloud](https://opencloud.eu) 8.x, built as a native web extension using the OpenCloud Extension SDK.
 
 [![AI Assisted](https://img.shields.io/badge/AI%20assisted-Claude%20Code-orange?logo=anthropic)](https://claude.ai) [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](LICENSE)
 
