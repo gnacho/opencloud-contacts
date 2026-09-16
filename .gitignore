@@ -18,3 +18,4 @@ pnpm-store/
 .bash_history
 .ssh/
 .rustup/
+.directory
