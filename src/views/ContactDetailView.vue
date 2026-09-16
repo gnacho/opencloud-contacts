@@ -148,7 +148,7 @@ function uidFromPath(path: string): string {
 // Keep currentUid in sync with the route so browser navigation always
 // shows the correct contact and edit/delete operate on the right record.
 const currentUid = ref(uidFromPath(window.location.pathname))
-watch(() => route.path, (path) => {
+watch(() => route.value.path, (path) => {
   const uid = uidFromPath(path)
   if (uid) currentUid.value = uid
 })
