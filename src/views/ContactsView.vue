@@ -200,7 +200,7 @@
               :key="col.key"
               :class="col.sortable === false ? '' : 'col-sortable'"
               :aria-sort="col.sortable !== false && sortKey === col.key ? (sortAsc ? 'ascending' : 'descending') : 'none'"
-              @click="col.sortable !== false && setSort(col.key as typeof sortKey.value)"
+              @click="col.sortable !== false && setSort(col.key as typeof sortKey)"
             >
               <span class="col-label">
                 {{ col.label }}
