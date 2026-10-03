@@ -69,10 +69,9 @@ export default defineWebApplication({
         name: () => $gettext('All contacts'),
         icon: 'contacts-book',
         route: { path: `/${appInfo.id}/list` },
-        activeFor: [
-          { name: 'contacts-list' },
-          { name: 'contact-detail' }
-        ]
+        // Matched by path prefix: the runtime namespaces route names with the
+        // app ID, and the detail route can't be resolved by name without a uid.
+        activeFor: [{ path: `/${appInfo.id}/contact` }]
       }
     ]
 
