@@ -17,19 +17,26 @@
     "@opencloud-eu/extension-sdk": "^8.0.0",
     "@opencloud-eu/web-client": "^8.0.0",
     "@opencloud-eu/web-pkg": "^8.0.0",
-    "vue": "^3.5.13",
-    "vue-router": "^5.0.0"
+    "vue": "^3.5.43",
+    "vue-router": "^5.3.1"
   },
   "devDependencies": {
     "@opencloud-eu/tsconfig": "^8.0.0",
-    "typescript": "^5.8.2",
-    "vite": "^7.2.0",
-    "vitest": "^3.2.4",
-    "vue-tsc": "^2.2.0",
-    "vue3-gettext": "2.3.4"
+    "typescript": "^6.0.3",
+    "vite": "^8.3.2",
+    "vitest": "^5.0.3",
+    "vue-tsc": "^3.3.12",
+    "vue3-gettext": "4.0.1"
   },
   "engines": {
     "pnpm": ">=10.28.1"
   },
-  "packageManager": "pnpm@10.28.1"
+  "packageManager": "pnpm@10.28.1",
+  "pnpm": {
+    "overrides": {
+      "@module-federation/dts-plugin>axios": "^1.20.0",
+      "@module-federation/dts-plugin>ws": "^8.21.0",
+      "@module-federation/dts-plugin>adm-zip": "^0.6.1"
+    }
+  }
 }
