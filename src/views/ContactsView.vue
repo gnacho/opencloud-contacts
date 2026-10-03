@@ -308,7 +308,7 @@ import { findDuplicates } from '../utils/duplicates'
 import type { DuplicateGroup } from '../utils/duplicates'
 
 const { $gettext } = useGettext()
-const { loading, error, loadContacts, updateContactsBatch, deleteAllContacts } = useCardDAV()
+const { loading, error, loadContacts, updateContactsBatch, deleteAllContacts, discardAppTokens } = useCardDAV()
 const { contacts, knownGroups, setNavigationList, setContacts } = useContactStore()
 const router = useRouter()
 
@@ -514,16 +514,18 @@ watch(
   () => [userStore.user?.id, authStore.accessToken] as const,
   ([userId, token]) => {
     if (!userId) {
-      // Logged out — clear contacts; keep app token in localStorage (still valid, reused on re-login)
+      // Logged out — clear contacts and drop/revoke the app token
       setContacts([])
+      discardAppTokens()
       lastLoadedUserId.value = null
       return
     }
     if (!token) return // access token not yet available — wait for next tick
     if (userId !== lastLoadedUserId.value) {
       if (lastLoadedUserId.value) {
-        // Different user — clear stale contacts; each user has their own token key
+        // Different user — clear stale contacts and the previous user's app token
         setContacts([])
+        discardAppTokens()
         lastLoadedUserId.value = userId
         loadContacts()
       } else {

@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.2] – 2026-10-03
+
+### Security
+- CardDAV app token is no longer persisted in `localStorage`; it is kept in
+  memory only, so it no longer survives logout or browser restarts
+- App token lifetime reduced from 24h to 1h (renewed automatically)
+- App token is revoked server-side when the page is left (reload, tab close,
+  logout redirect) and on logout or user switch
+- Tokens stored by previous versions are removed from `localStorage` and the
+  current user's token is revoked on first use
+
+### Changed
+- Updated OpenCloud SDK packages to v8.0.0
+- Business card appearance improved in dark mode
+
 ## [0.4.1] – 2026-04-29
 
 ### Added

@@ -28,33 +28,60 @@ const LIST_ITEMS_PROPFIND = `<?xml version="1.0" encoding="utf-8" ?>
   <D:prop><D:resourcetype/></D:prop>
 </D:propfind>`
 
-const APP_TOKEN_KEY_PREFIX = 'oc-contacts-app-token'
-const TOKEN_EXPIRY_MS = 24 * 60 * 60 * 1000 // matches server-side expiry=24h
+// App tokens act as account-wide app passwords, so they are kept in memory only
+// (never in localStorage) and are short-lived. A page reload simply creates a new one.
+const TOKEN_EXPIRY = '1h'
+const TOKEN_EXPIRY_MS = 60 * 60 * 1000 // matches server-side expiry=1h
+const TOKEN_RENEW_MARGIN_MS = 5 * 60 * 1000 // renew early so long batches don't hit expiry
+
+// Tokens from older versions were persisted under this prefix — migrated away on first use.
+const LEGACY_TOKEN_KEY_PREFIX = 'oc-contacts-app-token-'
 
 interface StoredToken { token: string; expiresAt: number }
 
-function appTokenKey(userId: string): string {
-  return `${APP_TOKEN_KEY_PREFIX}-${userId}`
-}
+// In-memory token cache keyed by userId.
+const tokenCache = new Map<string, StoredToken>()
 
 function loadStoredToken(userId: string): string | null {
-  try {
-    const raw = localStorage.getItem(appTokenKey(userId))
-    if (!raw) return null
-    const stored: StoredToken = JSON.parse(raw)
-    if (Date.now() >= stored.expiresAt) {
-      localStorage.removeItem(appTokenKey(userId))
-      return null
-    }
-    return stored.token
-  } catch {
+  const stored = tokenCache.get(userId)
+  if (!stored) return null
+  if (Date.now() >= stored.expiresAt - TOKEN_RENEW_MARGIN_MS) {
+    tokenCache.delete(userId)
     return null
   }
+  return stored.token
 }
 
 function saveToken(userId: string, token: string): void {
-  const stored: StoredToken = { token, expiresAt: Date.now() + TOKEN_EXPIRY_MS }
-  localStorage.setItem(appTokenKey(userId), JSON.stringify(stored))
+  tokenCache.set(userId, { token, expiresAt: Date.now() + TOKEN_EXPIRY_MS })
+}
+
+function revokeToken(token: string, bearerToken: string, keepalive = false): Promise<unknown> {
+  return fetch(`/auth-app/tokens?token=${encodeURIComponent(token)}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${bearerToken}` },
+    keepalive
+  }).catch(() => {})
+}
+
+/**
+ * Remove app tokens persisted in localStorage by older versions. The current
+ * user's token is revoked server-side; other users' tokens can't be revoked
+ * with this bearer token and are only removed locally (they expire within 24h).
+ */
+function migrateLegacyTokens(userId: string, bearerToken: string): void {
+  try {
+    const keys = Object.keys(localStorage).filter((k) => k.startsWith(LEGACY_TOKEN_KEY_PREFIX))
+    for (const key of keys) {
+      const raw = localStorage.getItem(key)
+      localStorage.removeItem(key)
+      if (key !== `${LEGACY_TOKEN_KEY_PREFIX}${userId}` || !raw) continue
+      const { token } = JSON.parse(raw) as StoredToken
+      if (token) revokeToken(token, bearerToken)
+    }
+  } catch {
+    // Storage unavailable or malformed entry — nothing to migrate
+  }
 }
 
 // Module-level counter so concurrent loadContacts() calls across any component
@@ -69,10 +96,29 @@ const tokenRequestsInFlight = new Map<string, Promise<string>>()
 // Track which users have had expired tokens purged this session.
 const purgedThisSession = new Set<string>()
 
+// Track which users have had legacy localStorage tokens migrated this session.
+const migratedThisSession = new Set<string>()
+
+let pageLifecycleHooked = false
+
 export function useCardDAV() {
   const authStore = useAuthStore()
   const userStore = useUserStore()
   const contactStore = useContactStore()
+
+  if (!pageLifecycleHooked) {
+    pageLifecycleHooked = true
+    // Best effort: revoke tokens when the page is left (reload, tab close, logout
+    // redirect). keepalive lets the request outlive the page. If the bearer token
+    // is already gone, the server-side expiry is the backstop.
+    window.addEventListener('pagehide', () => {
+      const bearerToken = authStore.accessToken
+      if (bearerToken) {
+        for (const { token } of tokenCache.values()) revokeToken(token, bearerToken, true)
+      }
+      tokenCache.clear()
+    })
+  }
 
   const contacts = ref<Contact[]>([])
   const loading = ref(false)
@@ -104,7 +150,7 @@ export function useCardDAV() {
   function evictTokenOnAuthFailure(status: number): void {
     if (status === 401 || status === 403) {
       const userId = userStore.user?.id
-      if (userId) localStorage.removeItem(appTokenKey(userId))
+      if (userId) tokenCache.delete(userId)
     }
   }
 
@@ -128,10 +174,7 @@ export function useCardDAV() {
       await Promise.all(
         tokens
           .filter((t) => t.label === 'contacts-app' && new Date(t.expiration_date) <= now)
-          .map((t) => fetch(`/auth-app/tokens?token=${encodeURIComponent(t.token)}`, {
-            method: 'DELETE',
-            headers: { Authorization: `Bearer ${bearerToken}` }
-          }))
+          .map((t) => revokeToken(t.token, bearerToken))
       )
     } catch {
       // Non-critical — ignore errors during cleanup
@@ -141,7 +184,7 @@ export function useCardDAV() {
   /** Create a new app token via the auth-app API */
   async function createAppToken(bearerToken: string): Promise<string> {
     await purgeExpiredAppTokens(bearerToken)
-    const resp = await fetch('/auth-app/tokens?expiry=24h&label=contacts-app', {
+    const resp = await fetch(`/auth-app/tokens?expiry=${TOKEN_EXPIRY}&label=contacts-app`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${bearerToken}` }
     })
@@ -166,6 +209,11 @@ export function useCardDAV() {
 
     const bearerToken = authStore.accessToken
     if (!bearerToken) throw new Error('No access token available')
+
+    if (!migratedThisSession.has(userId)) {
+      migratedThisSession.add(userId)
+      migrateLegacyTokens(userId, bearerToken)
+    }
 
     const request = createAppToken(bearerToken).then((token) => {
       saveToken(userId, token)
@@ -281,7 +329,7 @@ export function useCardDAV() {
     } catch (err) {
       if (epoch !== loadEpoch) return // stale — discard error from superseded load
       // If the cached token was manually revoked on the server, evictTokenOnAuthFailure
-      // already removed it from localStorage — retry once to get a fresh token.
+      // already removed it from the cache — retry once to get a fresh token.
       const is401 = err instanceof Error && /40[13]/.test(err.message)
       if (is401 && !retried) {
         return loadContacts(true)
@@ -494,6 +542,19 @@ export function useCardDAV() {
     await deleteContact(href, appToken)
   }
 
+  /**
+   * Drop all cached app tokens (logout / user switch). Revocation is attempted
+   * with the current bearer token if one is still available; the server rejects
+   * tokens of other users, so failures are ignored.
+   */
+  function discardAppTokens(): void {
+    const bearerToken = authStore.accessToken
+    if (bearerToken) {
+      for (const { token } of tokenCache.values()) revokeToken(token, bearerToken)
+    }
+    tokenCache.clear()
+  }
+
   return {
     contacts: readonly(contacts),
     loading: readonly(loading),
@@ -504,6 +565,7 @@ export function useCardDAV() {
     updateContactsBatch,
     updateContact,
     deleteContactEntry,
-    deleteAllContacts
+    deleteAllContacts,
+    discardAppTokens
   }
 }
