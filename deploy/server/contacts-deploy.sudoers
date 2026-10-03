@@ -1,0 +1,7 @@
+# Install as /etc/sudoers.d/contacts-deploy (owner root, mode 440) and check
+# with: visudo -cf /etc/sudoers.d/contacts-deploy
+#
+# The deploy-contacts user may run this one script as dockeruser, without arguments
+# (the trailing "" forbids any). Being in the docker group instead would be
+# root-equivalent.
+deploy-contacts ALL=(dockeruser) NOPASSWD: /usr/local/sbin/contacts-restart ""

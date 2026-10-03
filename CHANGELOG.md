@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Security
+- Deploys no longer log in as root. The dev-deploy workflow and `deploy.sh`
+  now use a `deploy-contacts` user whose keys are bound to a forced command
+  (`deploy/server/contacts-deploy`): uploads are confined to the app
+  directory by `rrsync -wo`, and `restart` runs one fixed script as
+  `dockeruser` through a single sudoers rule. A leaked deploy key can no
+  longer open a shell on the server. Setup steps in `deploy/server/SETUP.md`
+
 ## [0.4.4] – 2026-10-03
 
 ### Fixed
