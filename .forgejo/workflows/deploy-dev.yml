@@ -42,20 +42,20 @@ jobs:
           # ssh-keyscan, which would trust whatever host answers (MITM on first contact)
           echo "cloud.linux-nerds.org ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPRPf55guMUOVOBQKrphYOe3jpeOm2AJ9g+UF09J2zdT" > ~/.ssh/known_hosts
 
+      # The deploy-contacts user's key is bound to a forced command on the
+      # server (deploy/server/contacts-deploy): uploads are confined to the app
+      # directory, and "restart" is the only other thing it accepts.
       - name: Upload dist/
         run: |
           rsync -av --delete \
             -e "ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes" \
             dist/ \
-            root@cloud.linux-nerds.org:/mnt/HC_Volume_103940066/opencloud_keycloak_data/data/web/assets/apps/opencloud-contacts/
+            deploy-contacts@cloud.linux-nerds.org:./
 
       - name: Restart containers
         run: |
-          ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes root@cloud.linux-nerds.org \
-            "cd /home/dockeruser/opencloud-compose-keycloak && \
-             sudo -u dockeruser docker compose restart opencloud && \
-             sleep 3 && \
-             sudo -u dockeruser docker compose restart traefik"
+          ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+            deploy-contacts@cloud.linux-nerds.org restart
 
       - name: Done
         run: echo "Deploy fertig. https://cloud.linux-nerds.org/apps/opencloud-contacts/"
