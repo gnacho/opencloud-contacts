@@ -257,7 +257,7 @@
             <td class="col-email">
               <a
                 v-if="contact.emails.length"
-                :href="`mailto:${contact.emails[0].value}`"
+                :href="mailtoHref(contact.emails[0].value)"
                 class="contact-link"
                 @click.stop
               >
@@ -270,7 +270,7 @@
             <td class="col-phone">
               <a
                 v-if="contact.phones.length"
-                :href="`tel:${contact.phones[0].value}`"
+                :href="telHref(contact.phones[0].value)"
                 class="contact-link"
                 @click.stop
               >
@@ -298,6 +298,7 @@ import { useGettext } from 'vue3-gettext'
 import { useCardDAV } from '../composables/useCardDAV'
 import { useContactStore } from '../composables/useContactStore'
 import { contactToVCard } from '../utils/vcard-builder'
+import { mailtoHref, telHref } from '../utils/links'
 import { exportContactsToCSV } from '../utils/csv-exporter'
 import ImportDialog from '../components/ImportDialog.vue'
 import NewContactDialog from '../components/NewContactDialog.vue'

@@ -231,8 +231,9 @@ export function parseThunderbirdCSV(csvText: string): CsvContact[] {
     if (key) fieldIndex.set(key, i)
   }
 
+  // Strip the ' prefix our CSV export adds to formula-like values (see csv-exporter)
   const get = (cols: string[], key: keyof CsvContact): string =>
-    (cols[fieldIndex.get(key) ?? -1] ?? '').trim()
+    (cols[fieldIndex.get(key) ?? -1] ?? '').trim().replace(/^'(?=[=+\-@])/, '')
 
   const contacts: CsvContact[] = []
   for (let i = 1; i < records.length; i++) {
@@ -328,7 +329,7 @@ export function csvContactToVCard(c: CsvContact, defaultCategory?: string): { ui
     push(`ADR;TYPE=WORK:;;${street};${escapeVCard(c.workCity)};${escapeVCard(c.workState)};${escapeVCard(c.workZip)};${escapeVCard(c.workCountry)}`)
   }
 
-  if (c.birthYear && c.birthMonth && c.birthDay) {
+  if (/^\d{4}$/.test(c.birthYear) && c.birthMonth && c.birthDay) {
     const m = Number(c.birthMonth)
     const d = Number(c.birthDay)
     if (m >= 1 && m <= 12 && d >= 1 && d <= 31) {

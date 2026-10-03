@@ -9,6 +9,25 @@ function esc(value: string): string {
 }
 
 /**
+ * Build a ;TYPE= parameter. Parameter values are written unquoted, so only
+ * characters that cannot end the parameter or the line are kept — prevents
+ * property injection from crafted TYPE values of server-supplied vCards.
+ */
+function typeParam(type?: string): string {
+  const value = type?.replace(/[^A-Za-z0-9,_-]/g, '') ?? ''
+  return value ? `;TYPE=${value}` : ''
+}
+
+/** Normalize dates to YYYYMMDD / --MMDD; anything else is written as escaped text. */
+function formatBirthday(bday: string): string {
+  const full = /^(\d{4})-?(\d{2})-?(\d{2})$/.exec(bday)
+  if (full) return `${full[1]}${full[2]}${full[3]}`
+  const noYear = /^--(\d{2})-?(\d{2})$/.exec(bday)
+  if (noYear) return `--${noYear[1]}${noYear[2]}`
+  return esc(bday)
+}
+
+/**
  * Fold long vCard lines at 75 *octets* (RFC 6350 §3.2).
  * Uses TextEncoder so multi-byte UTF-8 characters are counted correctly.
  */
@@ -44,7 +63,7 @@ function foldLine(line: string): string {
 }
 
 export function contactToVCard(contact: Contact): string {
-  const out: string[] = ['BEGIN:VCARD', 'VERSION:3.0', `UID:${contact.uid}`]
+  const out: string[] = ['BEGIN:VCARD', 'VERSION:3.0', `UID:${esc(contact.uid)}`]
   const push = (line: string) => out.push(foldLine(line))
 
   push(`FN:${esc(contact.displayName)}`)
@@ -54,13 +73,11 @@ export function contactToVCard(contact: Contact): string {
   )
 
   for (const email of contact.emails) {
-    const type = email.type ? `;TYPE=${email.type}` : ''
-    push(`EMAIL${type}:${esc(email.value)}`)
+    push(`EMAIL${typeParam(email.type)}:${esc(email.value)}`)
   }
 
   for (const phone of contact.phones) {
-    const type = phone.type ? `;TYPE=${phone.type}` : ''
-    push(`TEL${type}:${esc(phone.value)}`)
+    push(`TEL${typeParam(phone.type)}:${esc(phone.value)}`)
   }
 
   if (contact.organization || contact.department) {
@@ -73,14 +90,13 @@ export function contactToVCard(contact: Contact): string {
   if (contact.nickname) push(`NICKNAME:${esc(contact.nickname)}`)
 
   for (const addr of contact.addresses) {
-    const type = addr.type ? `;TYPE=${addr.type}` : ''
     push(
-      `ADR${type}:;;${esc(addr.street ?? '')};${esc(addr.city ?? '')};${esc(addr.region ?? '')};${esc(addr.postalCode ?? '')};${esc(addr.country ?? '')}`
+      `ADR${typeParam(addr.type)}:;;${esc(addr.street ?? '')};${esc(addr.city ?? '')};${esc(addr.region ?? '')};${esc(addr.postalCode ?? '')};${esc(addr.country ?? '')}`
     )
   }
 
   if (contact.birthday) {
-    push(`BDAY:${contact.birthday.replace(/-/g, '')}`)
+    push(`BDAY:${formatBirthday(contact.birthday)}`)
   }
 
   for (const url of contact.websites ?? []) {

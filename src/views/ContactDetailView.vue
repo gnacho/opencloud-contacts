@@ -45,12 +45,12 @@
 
         <!-- Contact rows -->
         <div class="bcard-body">
-          <a v-for="(email, i) in contact.emails" :key="`e${i}`" :href="`mailto:${email.value}`" class="bcard-row bcard-row--link">
+          <a v-for="(email, i) in contact.emails" :key="`e${i}`" :href="mailtoHref(email.value)" class="bcard-row bcard-row--link">
             <oc-icon name="mail" size="small" class="bcard-row-icon" />
             <span class="bcard-row-label">{{ emailLabel(email.type) }}</span>
             <span class="bcard-row-value">{{ email.value }}</span>
           </a>
-          <a v-for="(phone, i) in contact.phones" :key="`p${i}`" :href="`tel:${phone.value}`" class="bcard-row bcard-row--link">
+          <a v-for="(phone, i) in contact.phones" :key="`p${i}`" :href="telHref(phone.value)" class="bcard-row bcard-row--link">
             <oc-icon name="phone" size="small" class="bcard-row-icon" />
             <span class="bcard-row-label">{{ phoneLabel(phone.type) }}</span>
             <span class="bcard-row-value">{{ phone.value }}</span>
@@ -69,10 +69,10 @@
 
         <!-- Action toolbar -->
         <div class="bcard-toolbar">
-          <oc-button v-if="contact.emails.length" appearance="outline" @click="openHref(`mailto:${contact.emails[0].value}`)">
+          <oc-button v-if="contact.emails.length" appearance="outline" @click="openHref(mailtoHref(contact.emails[0].value))">
             <oc-icon name="mail" size="small" />{{ $gettext('Email') }}
           </oc-button>
-          <oc-button v-if="contact.phones.length" appearance="outline" @click="openHref(`tel:${contact.phones[0].value}`)">
+          <oc-button v-if="contact.phones.length" appearance="outline" @click="openHref(telHref(contact.phones[0].value))">
             <oc-icon name="phone" size="small" />{{ $gettext('Call') }}
           </oc-button>
           <oc-button appearance="outline" @click="downloadVCard">
@@ -126,6 +126,7 @@ import { useGettext } from 'vue3-gettext'
 import { useContactStore } from '../composables/useContactStore'
 import { useCardDAV } from '../composables/useCardDAV'
 import { contactToVCard } from '../utils/vcard-builder'
+import { mailtoHref, telHref } from '../utils/links'
 import EditContactDialog from '../components/EditContactDialog.vue'
 import type { Contact } from '../types/contact'
 import { APP_ID } from '../config'

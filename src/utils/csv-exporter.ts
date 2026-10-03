@@ -20,7 +20,20 @@ const HEADERS = [
   'Notizen',
 ]
 
-function csvField(value: string): string {
+// Cells starting with these characters are evaluated as formulas by
+// spreadsheet apps (CSV injection, e.g. =HYPERLINK(...) or DDE payloads).
+const FORMULA_TRIGGER = /^[=+\-@\t\r]/
+// Plain numbers such as "+49 30 1234" cannot call functions and must stay
+// intact so phone numbers survive a re-import unchanged.
+const PLAIN_NUMBER = /^[+-]?[\d\s()./-]+$/
+
+/** Prefix formula-like values with ' so spreadsheets treat them as text. */
+export function neutralizeFormula(value: string): string {
+  return FORMULA_TRIGGER.test(value) && !PLAIN_NUMBER.test(value) ? `'${value}` : value
+}
+
+function csvField(rawValue: string): string {
+  const value = neutralizeFormula(rawValue)
   // Quote fields that contain comma, newline or double-quote
   if (value.includes('"') || value.includes(',') || value.includes('\n') || value.includes('\r')) {
     return '"' + value.replace(/"/g, '""') + '"'

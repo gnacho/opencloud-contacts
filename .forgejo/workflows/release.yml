@@ -10,7 +10,7 @@ jobs:
     name: Build & Publish Release
     runs-on: docker
     container:
-      image: node:20-alpine
+      image: node:24-alpine
 
     steps:
       - name: Install system deps
@@ -33,17 +33,21 @@ jobs:
         run: pnpm build
 
       - name: Package zip
+        env:
+          TAG: ${{ github.ref_name }}
         run: |
           mkdir -p _pkg/opencloud-contacts
           cp -r dist/* _pkg/opencloud-contacts/
-          cd _pkg && zip -r ../contacts-${{ github.ref_name }}.zip opencloud-contacts/
+          cd _pkg && zip -r "../contacts-${TAG}.zip" opencloud-contacts/
 
       - name: Create release and upload asset
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
+          # Passed via env, not interpolated into the script: a crafted tag name
+          # like v$(cmd) would otherwise be executed by the shell
+          TAG: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
         run: |
-          TAG=${{ github.ref_name }}
-          REPO=${{ github.repository }}
           API="${GITHUB_SERVER_URL}/api/v1"
 
           # Delete any existing release for this tag (removes Ghost-authored or duplicate releases)

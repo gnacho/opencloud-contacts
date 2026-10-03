@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.3] – 2026-10-03
+
+### Security
+- CSV export: values starting with `=`, `+`, `-`, `@`, tab or CR are prefixed
+  with `'` so spreadsheet apps don't evaluate them as formulas (CSV injection);
+  plain numbers like phone numbers stay unchanged, and the importer strips the
+  prefix again on re-import
+- vCard builder: UID is escaped, TYPE parameters are restricted to safe
+  characters and BDAY is validated, preventing property injection through
+  crafted vCards
+- CSV import: birth year must be a 4-digit number
+- `mailto:` and `tel:` links are percent-encoded, so a crafted address can no
+  longer prefill cc/bcc/subject/body
+- CI: tag name, ref and SSH key are passed via `env:` instead of being
+  interpolated into shell scripts; deploy workflow pins the server's SSH host
+  key instead of trusting `ssh-keyscan`
+
+### Fixed
+- Birthdays without a year (`--MMDD`) are no longer corrupted when saving
+
+### Changed
+- CI runs on Node 24 with pnpm pinned to 10.28.1
+
 ## [0.4.2] – 2026-10-03
 
 ### Security

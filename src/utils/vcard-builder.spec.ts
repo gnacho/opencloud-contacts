@@ -166,3 +166,41 @@ describe('contactToVCard + parseVCard roundtrip', () => {
     expect(parsed.note).toBe(original.note)
   })
 })
+
+describe('contactToVCard property injection', () => {
+  const propertyNames = (vcard: string) =>
+    vcard.split('\r\n').filter((l) => !l.startsWith(' ')).map((l) => l.split(/[;:]/)[0])
+
+  it('escapes newlines in the UID', () => {
+    const vcard = contactToVCard(makeContact({ uid: 'abc\nX-EVIL:1' }))
+    expect(vcard).toContain('UID:abc\\nX-EVIL:1')
+    expect(propertyNames(vcard)).not.toContain('X-EVIL')
+  })
+
+  it('strips unsafe characters from TYPE parameters', () => {
+    const vcard = contactToVCard(
+      makeContact({
+        emails: [{ value: 'a@b.de', type: 'WORK:x@evil.de\r\nX-EVIL' }],
+        phones: [{ value: '123', type: 'CELL,VOICE' }],
+        addresses: [{ city: 'Berlin', type: 'HOME;X=1' }]
+      })
+    )
+    expect(vcard).toContain('EMAIL;TYPE=WORKxevildeX-EVIL:a@b.de')
+    expect(vcard).toContain('TEL;TYPE=CELL,VOICE:123')
+    expect(vcard).toContain('ADR;TYPE=HOMEX1:')
+    expect(propertyNames(vcard)).not.toContain('X-EVIL')
+  })
+
+  it('omits TYPE when nothing safe remains', () => {
+    const vcard = contactToVCard(makeContact({ emails: [{ value: 'a@b.de', type: ':;' }] }))
+    expect(vcard).toContain('EMAIL:a@b.de')
+  })
+
+  it('normalizes birthdays and escapes non-date values', () => {
+    expect(contactToVCard(makeContact({ birthday: '1990-04-03' }))).toContain('BDAY:19900403')
+    expect(contactToVCard(makeContact({ birthday: '--0403' }))).toContain('BDAY:--0403')
+    const vcard = contactToVCard(makeContact({ birthday: '1990\nX-EVIL:1' }))
+    expect(vcard).toContain('BDAY:1990\\nX-EVIL:1')
+    expect(propertyNames(vcard)).not.toContain('X-EVIL')
+  })
+})

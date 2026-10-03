@@ -69,6 +69,13 @@ describe('csvContactToVCard', () => {
     expect(vcard).toContain('ADR;TYPE=WORK:;;')
     expect(vcard).toContain(';Berlin;')
   })
+
+  it('ignores a non-numeric birth year instead of injecting it', () => {
+    const c = { ...emptyContact(), firstName: 'A', birthYear: '1990\r\nX-EVIL:1', birthMonth: '4', birthDay: '3' }
+    const { vcard } = csvContactToVCard(c)
+    expect(vcard).not.toContain('BDAY')
+    expect(vcard).not.toContain('X-EVIL')
+  })
 })
 
 function emptyContact() {

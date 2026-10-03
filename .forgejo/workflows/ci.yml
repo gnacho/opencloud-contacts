@@ -10,7 +10,7 @@ jobs:
     name: Build / Test
     runs-on: docker
     container:
-      image: node:20-alpine
+      image: node:24-alpine
 
     steps:
       - name: Install system deps
@@ -24,7 +24,7 @@ jobs:
           git checkout ${{ github.sha }}
 
       - name: Install pnpm
-        run: corepack enable && corepack prepare pnpm@latest --activate
+        run: corepack enable && corepack prepare pnpm@10.28.1 --activate
 
       - name: Install packages
         run: pnpm install --frozen-lockfile
