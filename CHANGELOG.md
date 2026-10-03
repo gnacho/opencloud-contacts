@@ -11,6 +11,8 @@ All notable changes to this project will be documented in this file.
   directory by `rrsync -wo`, and `restart` runs one fixed script as
   `dockeruser` through a single sudoers rule. A leaked deploy key can no
   longer open a shell on the server. Setup steps in `deploy/server/SETUP.md`
+- All workflows remove the Forgejo token from `.git/config` right after
+  cloning, so dependency code running during install and build cannot read it
 
 ## [0.4.4] – 2026-10-03
 
