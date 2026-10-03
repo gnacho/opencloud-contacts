@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.4] – 2026-10-03
+
+### Fixed
+- Sidebar navigation no longer logs an `Error` to the console on every route
+  change: `activeFor` referenced un-namespaced route names that the runtime
+  could not resolve. "All contacts" is now also highlighted on contact
+  detail pages
+
+### Changed
+- Build tooling aligned with OpenCloud Web 8 / web-extensions: vite 8,
+  vitest 5, TypeScript 6, vue-tsc 3, vue3-gettext 4.0.1
+- `pnpm audit` is clean (all previous findings were build/test-time only)
+
 ## [0.4.3] – 2026-10-03
 
 ### Security

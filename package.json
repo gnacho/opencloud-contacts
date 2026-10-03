@@ -1,6 +1,6 @@
 {
   "name": "opencloud-contacts",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "private": true,
   "description": "OpenCloud Contacts App – reads contacts from Radicale via CardDAV",
   "license": "GPL-3.0-only",
