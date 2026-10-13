@@ -27,9 +27,18 @@ const FORMULA_TRIGGER = /^[=+\-@\t\r]/
 // intact so phone numbers survive a re-import unchanged.
 const PLAIN_NUMBER = /^[+-]?[\d\s()./-]+$/
 
-/** Prefix formula-like values with ' so spreadsheets treat them as text. */
+/**
+ * Prefix formula-like values with ' so spreadsheets treat them as text.
+ * Applied per ';'-separated segment as well: Excel in German and other
+ * European locales splits CSV on ';' regardless of our ',' delimiter, so
+ * "x;=HYPERLINK(...)" would otherwise land in its own formula cell.
+ * The importer strips these apostrophes again (see csv-importer).
+ */
 export function neutralizeFormula(value: string): string {
-  return FORMULA_TRIGGER.test(value) && !PLAIN_NUMBER.test(value) ? `'${value}` : value
+  return value
+    .split(';')
+    .map((seg) => (FORMULA_TRIGGER.test(seg) && !PLAIN_NUMBER.test(seg) ? `'${seg}` : seg))
+    .join(';')
 }
 
 function csvField(rawValue: string): string {
