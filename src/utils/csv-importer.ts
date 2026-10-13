@@ -231,9 +231,10 @@ export function parseThunderbirdCSV(csvText: string): CsvContact[] {
     if (key) fieldIndex.set(key, i)
   }
 
-  // Strip the ' prefix our CSV export adds to formula-like values (see csv-exporter)
+  // Strip the ' prefix our CSV export adds to formula-like values, both at the
+  // start of a field and after ';' (see neutralizeFormula in csv-exporter)
   const get = (cols: string[], key: keyof CsvContact): string =>
-    (cols[fieldIndex.get(key) ?? -1] ?? '').trim().replace(/^'(?=[=+\-@])/, '')
+    (cols[fieldIndex.get(key) ?? -1] ?? '').trim().replace(/(^|;)'(?=[=+\-@])/g, '$1')
 
   const contacts: CsvContact[] = []
   for (let i = 1; i < records.length; i++) {

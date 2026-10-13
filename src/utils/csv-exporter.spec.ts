@@ -30,6 +30,15 @@ describe('neutralizeFormula', () => {
     expect(neutralizeFormula('Jane Doe')).toBe('Jane Doe')
     expect(neutralizeFormula('')).toBe('')
   })
+
+  it('neutralizes formulas after ";" for spreadsheets using ";" as delimiter', () => {
+    expect(neutralizeFormula('x;=HYPERLINK("https://evil")')).toBe(`x;'=HYPERLINK("https://evil")`)
+    expect(neutralizeFormula("x;=cmd|' /C calc'!A0")).toBe(`x;'=cmd|' /C calc'!A0`)
+    expect(neutralizeFormula('a;@SUM(A1);b')).toBe(`a;'@SUM(A1);b`)
+    // plain numbers and ordinary text after ';' stay intact
+    expect(neutralizeFormula('Tel;+49 30 1234')).toBe('Tel;+49 30 1234')
+    expect(neutralizeFormula('a;b;c')).toBe('a;b;c')
+  })
 })
 
 describe('exportContactsToCSV', () => {
@@ -46,5 +55,14 @@ describe('exportContactsToCSV', () => {
     const [imported] = parseThunderbirdCSV(csv)
     expect(imported.displayName).toBe('=HYPERLINK("https://evil";"Klick")')
     expect(imported.mobile).toBe('+49 30 1234')
+  })
+
+  it('round-trips formulas hidden behind ";" through the importer', () => {
+    const note = 'Notiz;=HYPERLINK("https://evil")'
+    const csv = exportContactsToCSV([makeContact({ note })])
+    expect(csv).toContain(`Notiz;'=HYPERLINK(""https://evil"")`)
+
+    const [imported] = parseThunderbirdCSV(csv)
+    expect(imported.notes).toBe(note)
   })
 })
