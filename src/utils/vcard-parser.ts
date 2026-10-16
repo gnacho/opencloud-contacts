@@ -91,7 +91,13 @@ function parseLine(line: string): { name: string; params: Record<string, string>
       // Bare flag: e.g. EMAIL;WORK;INTERNET:... — store as key with empty value
       params[segments[i].toUpperCase()] = ''
     } else {
-      params[segments[i].substring(0, eqIdx).toUpperCase()] = segments[i].substring(eqIdx + 1)
+      const key = segments[i].substring(0, eqIdx).toUpperCase()
+      const value = segments[i].substring(eqIdx + 1)
+      // Repeated parameters are a list, not an overwrite: "TEL;type=CELL;type=pref"
+      // must keep BOTH values (vCard 4.0 §5.4 allows comma-separated parameter
+      // values). Keeping only the last one used to turn "CELL,pref" into "pref",
+      // so an iPhone mobile was labelled "pref" and lost its type on save.
+      params[key] = key in params ? `${params[key]},${value}` : value
     }
   }
 
@@ -104,10 +110,20 @@ function parseLine(line: string): { name: string; params: Record<string, string>
  * Non-type param keys (ENCODING, CHARSET, VALUE, LANGUAGE) are excluded.
  */
 const PARAM_META_KEYS = new Set(['ENCODING', 'CHARSET', 'VALUE', 'LANGUAGE'])
+// PREF marks the preferred entry (RFC 6350 §5.4); it is a hint, not a type.
+// It must not win over the real type, so it is filtered out of the result.
+const PREF_KEY = 'PREF'
 
 function resolveType(params: Record<string, string>): string | undefined {
-  if (params['TYPE']) return params['TYPE']
-  const bareFlags = Object.keys(params).filter((k) => !PARAM_META_KEYS.has(k))
+  // "TYPE=CELL,pref" (single list) and "type=CELL;type=pref" (now merged into a
+  // list by parseLine) both surface here; drop PREF and keep the meaningful part.
+  const fromType = params['TYPE']
+    ? params['TYPE'].split(',').filter((t) => t.toUpperCase() !== PREF_KEY)
+    : []
+  if (fromType.length) return fromType.join(',')
+  const bareFlags = Object.keys(params).filter(
+    (k) => k !== 'TYPE' && k.toUpperCase() !== PREF_KEY && !PARAM_META_KEYS.has(k)
+  )
   return bareFlags.length ? bareFlags.join(',') : undefined
 }
 

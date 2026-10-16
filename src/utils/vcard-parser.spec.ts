@@ -217,6 +217,85 @@ describe('parseVCard — grouped properties', () => {
   })
 })
 
+// Apple clients and Thunderbird write repeated parameters, e.g.
+// "TEL;type=CELL;type=pref:+34 600 111 222". A plain object kept only the last
+// one, so the phone was stored as type "pref" (labelled "pref" instead of
+// "Mobile") and saving normalised the card to "TEL;TYPE=pref", losing CELL.
+describe('parseVCard — repeated parameters', () => {
+  it('keeps every value of a repeated parameter as a list', () => {
+    const contact = parseVCard(
+      [
+        'BEGIN:VCARD',
+        'VERSION:3.0',
+        'FN:Jane Doe',
+        'TEL;type=CELL;type=pref:+34 600 111 222',
+        'TEL;type=WORK;type=VOICE:+34 622 333 444',
+        'EMAIL;type=INTERNET;type=pref:jane@example.com',
+        'END:VCARD'
+      ].join('\r\n'),
+      'fallback-id'
+    )
+
+    expect(contact.phones).toEqual([
+      { value: '+34 600 111 222', type: 'CELL' },
+      { value: '+34 622 333 444', type: 'WORK,VOICE' }
+    ])
+    expect(contact.emails).toEqual([{ value: 'jane@example.com', type: 'INTERNET' }])
+  })
+
+  it('still accepts a single comma-separated TYPE list', () => {
+    const contact = parseVCard(
+      [
+        'BEGIN:VCARD',
+        'VERSION:3.0',
+        'FN:Jane Doe',
+        'TEL;TYPE=CELL,VOICE:+34 611 222 333',
+        'END:VCARD'
+      ].join('\r\n'),
+      'fallback-id'
+    )
+
+    expect(contact.phones).toEqual([{ value: '+34 611 222 333', type: 'CELL,VOICE' }])
+  })
+
+  it('treats PREF alone as no type instead of labelling the entry "pref"', () => {
+    const contact = parseVCard(
+      [
+        'BEGIN:VCARD',
+        'VERSION:3.0',
+        'FN:Jane Doe',
+        'TEL;TYPE=pref:+34 611 222 333',
+        'TEL;PREF;CELL:+34 644 555 666',
+        'END:VCARD'
+      ].join('\r\n'),
+      'fallback-id'
+    )
+
+    expect(contact.phones).toEqual([
+      { value: '+34 611 222 333', type: undefined },
+      { value: '+34 644 555 666', type: 'CELL' }
+    ])
+  })
+
+  it('writes the meaningful type back, so saving keeps it on the server', () => {
+    const rebuilt = contactToVCard(
+      parseVCard(
+        [
+          'BEGIN:VCARD',
+          'VERSION:3.0',
+          'FN:Jane Doe',
+          'item2.TEL;type=CELL;type=pref:+34 600 111 222',
+          'END:VCARD'
+        ].join('\r\n'),
+        'fallback-id'
+      )
+    )
+
+    expect(rebuilt).toContain('TEL;TYPE=CELL:+34 600 111 222')
+    expect(rebuilt).not.toContain('pref')
+  })
+})
+
 describe('parseCardDAVReport', () => {
   it('extracts href and vcard payloads from namespaced report XML', () => {
     const xml = `
