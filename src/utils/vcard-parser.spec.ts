@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { parseAddressBookPropfind, parseCardDAVReport, parseVCard } from './vcard-parser'
+import { contactToVCard } from './vcard-builder'
 
 describe('parseVCard', () => {
   it('parses a minimal contact', () => {
@@ -151,6 +152,68 @@ describe('parseVCard', () => {
       'fallback-id'
     )
     expect(contact.displayName).toBe('Müller Test')
+  })
+})
+
+// Apple clients write one group per data line ("item1.EMAIL", "item2.TEL") and
+// label it with a separate "itemN.X-ABLabel" line, which is what RFC 6350 §3.3
+// describes. Every grouped property used to be dropped, and because the field
+// never reached the Contact, saving the contact afterwards erased it from the
+// server too: the card came back with only the ungrouped TEL.
+describe('parseVCard — grouped properties', () => {
+  const iosCard = [
+    'BEGIN:VCARD',
+    'VERSION:3.0',
+    'PRODID:-//Apple Inc.//iPhone OS 17.5//EN',
+    'N:Doe;Jane;;;',
+    'FN:Jane Doe',
+    'ORG:Acme;',
+    'item1.EMAIL;type=INTERNET;type=pref:jane@example.com',
+    'item1.X-ABLabel:_$!<Home>!$_',
+    'item2.TEL;type=CELL;type=pref:+34 600 111 222',
+    'item2.X-ABLabel:_$!<Mobile>!$_',
+    'item3.URL:https://example.com',
+    'item4.ADR;type=HOME:;;Main St 1;Berlin;;10115;DE',
+    'item5.NOTE:Met at the conference',
+    'TEL;type=WORK:+34 900 000 000',
+    'END:VCARD',
+  ].join('\r\n')
+
+  it('reads every grouped property', () => {
+    const contact = parseVCard(iosCard, 'fallback-id')
+
+    expect(contact.emails.map((e) => e.value)).toEqual(['jane@example.com'])
+    expect(contact.phones.map((p) => p.value)).toEqual(['+34 600 111 222', '+34 900 000 000'])
+    expect(contact.websites).toEqual(['https://example.com'])
+    expect(contact.addresses).toHaveLength(1)
+    expect(contact.addresses[0].street).toBe('Main St 1')
+    expect(contact.note).toBe('Met at the conference')
+  })
+
+  it('writes them back, so saving no longer erases them from the server', () => {
+    const rebuilt = contactToVCard(parseVCard(iosCard, 'fallback-id'))
+
+    expect(rebuilt).toContain('jane@example.com')
+    expect(rebuilt).toContain('+34 600 111 222')
+    expect(rebuilt).toContain('URL:https://example.com')
+    expect(rebuilt).toContain('NOTE:Met at the conference')
+    expect(rebuilt).toContain('ADR;TYPE=HOME:;;Main St 1;Berlin;;10115;DE')
+  })
+
+  it('survives a group name with dots and a grouped unknown property', () => {
+    const contact = parseVCard(
+      [
+        'BEGIN:VCARD',
+        'VERSION:3.0',
+        'FN:Group Test',
+        'com.apple.abcdef.TEL;type=CELL:+34 611 222 333',
+        'item1.X-ABLabel:_$!<Custom>!$_',
+        'END:VCARD',
+      ].join('\r\n'),
+      'fallback-id'
+    )
+
+    expect(contact.phones.map((p) => p.value)).toEqual(['+34 611 222 333'])
   })
 })
 
