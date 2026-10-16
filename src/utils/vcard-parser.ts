@@ -75,7 +75,14 @@ function parseLine(line: string): { name: string; params: Record<string, string>
   const value = line.substring(colonIdx + 1)
 
   const segments = namePart.split(';')
-  const name = segments[0].toUpperCase()
+  // RFC 6350 §3.3 allows a group prefix ("item1.TEL", "AppleMail.EMAIL"): it is
+  // part of the property name, not of the value. Apple clients use one group per
+  // data line. Without stripping it, "ITEM1.TEL" matches no case below and the
+  // line is dropped — and because the field never reaches the contact, saving
+  // afterwards erases it from the server as well.
+  const rawName = segments[0]
+  const lastDot = rawName.lastIndexOf('.')
+  const name = (lastDot === -1 ? rawName : rawName.substring(lastDot + 1)).toUpperCase()
   const params: Record<string, string> = {}
 
   for (let i = 1; i < segments.length; i++) {
