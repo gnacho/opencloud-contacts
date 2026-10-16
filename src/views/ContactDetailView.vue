@@ -1,8 +1,14 @@
 <template>
   <div class="detail-page">
 
+    <!-- Loading: on a reload or a direct link the store starts empty -->
+    <div v-if="isLoadingContact" class="detail-loading">
+      <oc-spinner :aria-label="$gettext('Loading contacts…')" size="medium" />
+      <span>{{ $gettext('Loading contacts…') }}</span>
+    </div>
+
     <!-- Not found -->
-    <div v-if="!contact" class="detail-notfound">
+    <div v-else-if="!contact" class="detail-notfound">
       <oc-icon name="contacts-book" size="xxlarge" color="var(--oc-color-text-muted)" />
       <p>{{ $gettext('Contact not found.') }}</p>
       <oc-button @click="goBack">{{ $gettext('Back to contacts') }}</oc-button>
@@ -119,7 +125,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { version as appVersion } from '../../package.json'
 import { useRouter, useRoute, useUserStore } from '@opencloud-eu/web-pkg'
 import { useGettext } from 'vue3-gettext'
@@ -136,7 +142,7 @@ const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
 const { navigationList, contacts, findByUid, setContacts, setNavigationList } = useContactStore()
-const { deleteContactEntry } = useCardDAV()
+const { deleteContactEntry, loadContacts, loading } = useCardDAV()
 
 const showEdit = ref(false)
 const deleting = ref(false)
@@ -162,6 +168,32 @@ watch(() => userStore.user?.id, (id, prevId) => {
 })
 
 const contact = computed<Contact | undefined>(() => findByUid(currentUid.value))
+
+// A reload or a shared link lands here with an empty store: the list view was
+// the only place that ever fetched the contacts, so this view looked up a
+// record nobody had loaded and answered "Contact not found" for a contact that
+// exists. Load them when this UID is not in the store yet.
+const loadAttempted = ref(false)
+onMounted(async () => {
+  if (findByUid(currentUid.value)) {
+    loadAttempted.value = true
+    return
+  }
+  try {
+    await loadContacts()
+  } catch {
+    // Falling through to "Contact not found" is enough here; the composable
+    // keeps the error in its own state.
+  } finally {
+    loadAttempted.value = true
+  }
+})
+
+// While the first load is in flight (or before it starts) the contact is
+// genuinely unknown, which is not the same as missing.
+const isLoadingContact = computed(
+  () => !contact.value && (loading.value || !loadAttempted.value)
+)
 
 // Navigate in the same order as the list (sorted/filtered at time of opening)
 const navList = computed(() => navigationList.value)
@@ -568,7 +600,8 @@ function avatarStyle(c: Contact): Record<string, string> {
 }
 
 /* --- Not found --- */
-.detail-notfound {
+.detail-notfound,
+.detail-loading {
   display: flex;
   flex-direction: column;
   align-items: center;
