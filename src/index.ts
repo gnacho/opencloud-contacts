@@ -11,6 +11,7 @@ import { RouteRecordRaw } from 'vue-router'
 import { computed } from 'vue'
 import { useGettext } from 'vue3-gettext'
 import { APP_ID } from './config'
+import translations from '../l10n/translations.json'
 
 export default defineWebApplication({
   setup(args) {
@@ -79,6 +80,7 @@ export default defineWebApplication({
       appInfo,
       routes,
       navItems,
+      translations,
       extensions: extensions(args)
     }
   }
