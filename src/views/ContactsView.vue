@@ -284,7 +284,7 @@
     </div>
 
     <footer class="contacts-footer">
-      © 2026 <a href="https://linux-nerds.org" target="_blank" rel="noopener noreferrer">linux-nerds.org</a> · Contacts v{{ appVersion }}
+      © 2026 <a href="https://linux-nerds.org" target="_blank" rel="noopener noreferrer">linux-nerds.org</a> · {{ $gettext('Contacts') }} v{{ appVersion }}
     </footer>
 
   </div>

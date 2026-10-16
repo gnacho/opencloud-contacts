@@ -199,7 +199,7 @@ const hasAnyMergeable = computed(() =>
 )
 
 const modalTitle = computed(() => {
-  if (state.value === 'preview') return $gettext('Merge contacts — Preview')
+  if (state.value === 'preview') return $gettext('Merge contacts - Preview')
   if (state.value === 'confirm-all') return $gettext('Merge all duplicates')
   return $gettext('Duplicate contacts')
 })
