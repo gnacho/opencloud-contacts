@@ -177,7 +177,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, watch } from 'vue'
 import { useGettext } from 'vue3-gettext'
 import { useCardDAV } from '../composables/useCardDAV'
 import { useContactStore } from '../composables/useContactStore'
@@ -221,6 +221,16 @@ const form = reactive({
   photoUrl: props.contact.photoUrl ?? ''
 })
 
+// The dialog is opened for exactly one contact. The detail view behind it is
+// reused when the route points at another contact (browser back/forward), so
+// props.contact can change underneath the open form: the fields would then be
+// saved into the OTHER contact's href. Close instead — the edit no longer
+// matches what is on screen.
+const openedUid = props.contact.uid
+watch(() => props.contact.uid, (uid) => {
+  if (uid !== openedUid) emit('close')
+})
+
 async function save() {
   saving.value = true
   saveError.value = ''
@@ -255,6 +265,10 @@ async function save() {
   }
 
   try {
+    // Belt-and-suspenders: the uid watcher closes the dialog when the route
+    // switches contacts, but if a save was already in flight it must not land
+    // on another contact's href. Silent abort — the dialog is going away.
+    if (props.contact.uid !== openedUid) return
     if (!updated.href) throw new Error('No CardDAV URL for this contact')
     const vcard = contactToVCard(updated)
     const newEtag = await updateContact(updated.href, vcard, updated.etag)
