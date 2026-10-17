@@ -64,6 +64,19 @@ export function mergeContacts(selected: Contact[]): Contact {
   // Addresses: keep all (no reliable dedup key)
   const addresses = selected.flatMap((c) => c.addresses)
 
+  // Notes hold free-form information a scalar first() silently discarded
+  // (issue #5): concatenate the distinct ones instead. Duplicated text is
+  // only kept once.
+  const notesSeen = new Set<string>()
+  const notes: string[] = []
+  for (const c of selected) {
+    const n = (c.note ?? '').trim()
+    if (n && !notesSeen.has(n.toLowerCase())) {
+      notesSeen.add(n.toLowerCase())
+      notes.push(n)
+    }
+  }
+
   function first<K extends keyof Contact>(key: K): Contact[K] | undefined {
     for (const c of selected) {
       const v = c[key]
@@ -83,7 +96,7 @@ export function mergeContacts(selected: Contact[]): Contact {
     department: first('department'),
     title: first('title'),
     nickname: first('nickname'),
-    note: first('note'),
+    note: notes.length ? notes.join('\n\n') : undefined,
     birthday: first('birthday'),
     photoUrl: first('photoUrl'),
     custom1: first('custom1'),

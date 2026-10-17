@@ -78,9 +78,29 @@
         <p class="preview-intro">
           {{ $gettext('The following %{n} contacts will be merged into one:', { n: previewSelected.length }) }}
         </p>
+        <!-- Every scalar field of every source, so nothing is discarded
+             without the user having seen it first (issue #5). -->
         <ul class="preview-sources">
-          <li v-for="c in previewSelected" :key="c.uid">{{ c.displayName }}</li>
+          <li v-for="c in previewSelected" :key="c.uid">
+            {{ c.displayName }}
+            <ul class="source-fields">
+              <li v-if="c.organization">{{ $gettext('Organisation') }}: {{ c.organization }}</li>
+              <li v-if="c.title">{{ $gettext('Title') }}: {{ c.title }}</li>
+              <li v-if="c.nickname">{{ $gettext('Nickname') }}: {{ c.nickname }}</li>
+              <li v-if="c.birthday">{{ $gettext('Birthday') }}: {{ c.birthday }}</li>
+              <li v-for="i in 4" :key="`custom${i}`">
+                <template v-if="[c.custom1, c.custom2, c.custom3, c.custom4][i - 1]">
+                  {{ $gettext('Custom %{n}', { n: i }) }}: {{ [c.custom1, c.custom2, c.custom3, c.custom4][i - 1] }}
+                </template>
+              </li>
+              <li v-if="c.note">{{ $gettext('Note') }}: {{ c.note }}</li>
+            </ul>
+          </li>
         </ul>
+
+        <button class="export-btn" @click="downloadCopy">
+          {{ $gettext('Download a copy (vCard)') }}
+        </button>
 
         <h3 class="preview-result-label">{{ $gettext('Result') }}</h3>
         <table class="preview-table">
@@ -200,6 +220,24 @@ type State = 'list' | 'confirm-all' | 'preview'
 const state = ref<State>('list')
 const previewSelected = ref<Contact[]>([])
 const previewMerged = ref<Contact | null>(null)
+
+// A merge deletes the other contacts and Radicale has no trash: hand the user
+// a copy of the raw vCards before anything is written (issue #5).
+function downloadCopy() {
+  const bundle = previewSelected.value
+    .filter((c) => c.raw)
+    .map((c) => c.raw.replace(/[\r\n]*END:VCARD\s*$/i, '').trim() + '\r\nEND:VCARD\r\n')
+    .join('\r\n')
+  const blob = new Blob([bundle], { type: 'text/vcard; charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `duplicates-${previewMerged.value?.uid ?? 'merge'}.vcf`
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
+}
 const merging = ref(false)
 const mergingAll = ref(false)
 const mergeError = ref<string | null>(null)
@@ -382,6 +420,29 @@ async function onConfirm() {
   margin: 0 0 1.25rem 1.25rem;
   font-size: 0.875rem;
   color: var(--oc-color-text-muted);
+}
+
+.source-fields {
+  margin: 0.25rem 0 0.5rem;
+  padding-left: 1rem;
+  font-size: 0.8rem;
+  word-break: break-word;
+}
+
+.export-btn {
+  margin-bottom: 1.25rem;
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--oc-color-border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--oc-color-text);
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.export-btn:hover {
+  border-color: var(--oc-color-swatch-primary-default);
+  color: var(--oc-color-swatch-primary-default);
 }
 
 .preview-result-label {
