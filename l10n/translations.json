@@ -2,6 +2,7 @@
   "es": {
     "%{count} contacts found in file": "%{count} contactos encontrados en el archivo",
     "%{n} contact(s) could not be updated.": "%{n} contacto(s) no se han podido actualizar.",
+    "%{n} contact(s) were changed on the server or on another device. Reload the contacts to get their current version.": "%{n} contacto(s) se han modificado en el servidor o en otro dispositivo. Recarga los contactos para obtener su versión actual.",
     "%{n} group(s) of duplicate contacts found.": "Se han encontrado %{n} grupo(s) de contactos duplicados.",
     "Add address": "Añadir dirección",
     "Add email": "Añadir correo",
@@ -16,6 +17,7 @@
     "Birthday": "Cumpleaños",
     "Call": "Llamar",
     "Cancel": "Cancelar",
+    "Cards": "Tarjetas",
     "Change photo": "Cambiar foto",
     "City": "Ciudad",
     "Click to change photo": "Haz clic para cambiar la foto",
@@ -29,6 +31,7 @@
     "Could not process image.": "No se ha podido procesar la imagen.",
     "Could not read file.": "No se ha podido leer el archivo.",
     "Country": "País",
+    "Custom %{n}": "Campo personalizado %{n}",
     "Default group for contacts without a group": "Grupo por defecto para los contactos sin grupo",
     "Delete": "Eliminar",
     "Delete \"%{name}\"?": "¿Eliminar \"%{name}\"?",
@@ -36,6 +39,7 @@
     "Delete all contacts": "Eliminar todos los contactos",
     "Deleting…": "Eliminando…",
     "Display name": "Nombre para mostrar",
+    "Download a copy (vCard)": "Descargar una copia (vCard)",
     "Drag a Thunderbird CSV file here or": "Arrastra aquí un archivo CSV de Thunderbird o",
     "Duplicate contacts": "Contactos duplicados",
     "Edit": "Editar",
@@ -61,6 +65,8 @@
     "Importing…": "Importando…",
     "Invalid image file.": "Archivo de imagen no válido.",
     "Last name": "Apellidos",
+    "Layout": "Disposición",
+    "List": "Lista",
     "Loading contacts…": "Cargando contactos…",
     "Max. 256 × 256 px · JPEG, PNG, WebP": "Máx. 256 × 256 px · JPEG, PNG, WebP",
     "Merge %{n} contacts": "Fusionar %{n} contactos",
@@ -100,6 +106,7 @@
     "Set group for contacts without group": "Asignar grupo a los contactos sin grupo",
     "Street": "Calle",
     "The following %{n} contacts will be merged into one:": "Los siguientes %{n} contactos se fusionarán en uno:",
+    "This contact was changed on the server or on another device. Reload the contacts and apply your changes again.": "Este contacto se ha modificado en el servidor o en otro dispositivo. Recarga los contactos y vuelve a aplicar tus cambios.",
     "This will merge %{n} group(s) of duplicate contacts. This cannot be undone.": "Esto fusionará %{n} grupo(s) de contactos duplicados. No se puede deshacer.",
     "This will permanently delete all %{n} contacts. This cannot be undone.": "Esto eliminará permanentemente los %{n} contactos. No se puede deshacer.",
     "Title": "Puesto",
@@ -108,10 +115,6 @@
     "Yes": "Sí",
     "https://…": "https://…",
     "vCard": "vCard",
-    "… and %{n} more": "… y %{n} más",
-    "This contact was changed on the server or on another device. Reload the contacts and apply your changes again.": "Este contacto se ha modificado en el servidor o en otro dispositivo. Recarga los contactos y vuelve a aplicar tus cambios.",
-    "%{n} contact(s) were changed on the server or on another device. Reload the contacts to get their current version.": "%{n} contacto(s) se han modificado en el servidor o en otro dispositivo. Recarga los contactos para obtener su versión actual.",
-    "Custom %{n}": "Campo personalizado %{n}",
-    "Download a copy (vCard)": "Descargar una copia (vCard)"
+    "… and %{n} more": "… y %{n} más"
   }
 }
