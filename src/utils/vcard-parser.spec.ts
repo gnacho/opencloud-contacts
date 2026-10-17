@@ -297,13 +297,14 @@ describe('parseVCard — repeated parameters', () => {
 })
 
 describe('parseCardDAVReport', () => {
-  it('extracts href and vcard payloads from namespaced report XML', () => {
+  it('extracts href, etag and vcard payloads from namespaced report XML', () => {
     const xml = `
       <d:multistatus xmlns:d="DAV:" xmlns:cr="urn:ietf:params:xml:ns:carddav">
         <d:response>
           <d:href>/carddav/book/jane.vcf</d:href>
           <d:propstat>
             <d:prop>
+              <d:getetag>"abc-123"</d:getetag>
               <cr:address-data>BEGIN:VCARD
 VERSION:3.0
 FN:Jane Doe
@@ -315,6 +316,7 @@ END:VCARD</cr:address-data>
           <d:href>/carddav/book/john.vcf</d:href>
           <d:propstat>
             <d:prop>
+              <getetag>"def-456"</getetag>
               <cr:address-data>BEGIN:VCARD
 VERSION:3.0
 FN:John Doe
@@ -328,11 +330,38 @@ END:VCARD</cr:address-data>
     expect(parseCardDAVReport(xml)).toEqual([
       {
         href: '/carddav/book/jane.vcf',
-        vcardRaw: 'BEGIN:VCARD\nVERSION:3.0\nFN:Jane Doe\nEND:VCARD'
+        vcardRaw: 'BEGIN:VCARD\nVERSION:3.0\nFN:Jane Doe\nEND:VCARD',
+        etag: '"abc-123"'
       },
       {
         href: '/carddav/book/john.vcf',
-        vcardRaw: 'BEGIN:VCARD\nVERSION:3.0\nFN:John Doe\nEND:VCARD'
+        vcardRaw: 'BEGIN:VCARD\nVERSION:3.0\nFN:John Doe\nEND:VCARD',
+        etag: '"def-456"'
+      }
+    ])
+  })
+
+  it('leaves etag undefined when the report carries no getetag', () => {
+    const xml = `
+      <d:multistatus xmlns:d="DAV:" xmlns:cr="urn:ietf:params:xml:ns:carddav">
+        <d:response>
+          <d:href>/carddav/book/jane.vcf</d:href>
+          <d:propstat>
+            <d:prop>
+              <cr:address-data>BEGIN:VCARD
+VERSION:3.0
+FN:Jane Doe
+END:VCARD</cr:address-data>
+            </d:prop>
+          </d:propstat>
+        </d:response>
+      </d:multistatus>
+    `
+
+    expect(parseCardDAVReport(xml)).toEqual([
+      {
+        href: '/carddav/book/jane.vcf',
+        vcardRaw: 'BEGIN:VCARD\nVERSION:3.0\nFN:Jane Doe\nEND:VCARD'
       }
     ])
   })

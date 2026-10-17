@@ -4,6 +4,19 @@ import { parseVCard, parseCardDAVReport, parseAddressBookPropfind } from '../uti
 import { useContactStore } from './useContactStore'
 import type { Contact } from '../types/contact'
 
+/**
+ * Thrown when an update is rejected with 412 Precondition Failed: the stored
+ * vCard changed on the server (another client, another tab) after it was
+ * loaded. Callers surface this to the user instead of treating it as a
+ * generic failure — the remote change must be reloaded, not overwritten.
+ */
+export class ContactConflictError extends Error {
+  constructor(href: string) {
+    super(`Contact changed on the server: ${href} (412 Precondition Failed)`)
+    this.name = 'ContactConflictError'
+  }
+}
+
 const PROPFIND_BODY = `<?xml version="1.0" encoding="utf-8" ?>
 <D:propfind xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:carddav">
   <D:prop>
@@ -154,7 +167,7 @@ export function useCardDAV() {
     }
   }
 
-  function cardDAVHeaders(appToken: string, extra: Record<string, string> = {}): HeadersInit {
+  function cardDAVHeaders(appToken: string, extra: Record<string, string> = {}): Record<string, string> {
     return {
       Authorization: basicAuthHeader(appToken),
       'Content-Type': 'application/xml; charset=utf-8',
@@ -284,10 +297,11 @@ export function useCardDAV() {
     const xml = await response.text()
     const entries = parseCardDAVReport(xml)
 
-    return entries.map(({ href, vcardRaw }) => {
+    return entries.map(({ href, vcardRaw, etag }) => {
       const uid = href.split('/').filter(Boolean).pop() ?? href
       const contact = parseVCard(vcardRaw, uid)
       contact.href = resolveCardDAVUrl(href)
+      contact.etag = etag
       return contact
     })
   }
@@ -484,31 +498,41 @@ export function useCardDAV() {
     return results
   }
 
-  /** Update multiple existing contacts in parallel (sliding window). */
+  /** Update multiple existing contacts in parallel (sliding window).
+   *  Sends If-Match when an etag is known; a 412 marks the item as conflict
+   *  instead of failing the whole batch. Returns the fresh ETag per item. */
   async function updateContactsBatch(
-    items: { href: string; vcard: string }[],
+    items: { href: string; vcard: string; etag?: string }[],
     onProgress?: (done: number, total: number) => void
-  ): Promise<{ href: string; error?: string }[]> {
+  ): Promise<{ href: string; etag?: string; error?: string; conflict?: boolean }[]> {
     const appToken = await getAppToken()
-    const results: { href: string; error?: string }[] = new Array(items.length)
+    const results: { href: string; etag?: string; error?: string; conflict?: boolean }[] = new Array(items.length)
     let completed = 0
 
     const CONCURRENCY = 20
     const queue = items.map((item, index) => ({ ...item, index }))
     const workers = Array.from({ length: CONCURRENCY }, async () => {
       while (queue.length > 0) {
-        const { href, vcard, index } = queue.shift()!
+        const { href, vcard, etag, index } = queue.shift()!
         try {
+          const headers: Record<string, string> = {
+            ...cardDAVHeaders(appToken),
+            'Content-Type': 'text/vcard; charset=utf-8'
+          }
+          if (etag) headers['If-Match'] = etag
           const response = await fetch(href, {
             method: 'PUT',
-            headers: { ...cardDAVHeaders(appToken), 'Content-Type': 'text/vcard; charset=utf-8' },
+            headers,
             body: vcard
           })
-          if (!response.ok && response.status !== 201 && response.status !== 204) {
+          if (response.status === 412) {
+            results[index] = { href, conflict: true }
+          } else if (!response.ok && response.status !== 201 && response.status !== 204) {
             evictTokenOnAuthFailure(response.status)
             throw new Error(`PUT failed: ${response.status} ${response.statusText}`)
+          } else {
+            results[index] = { href, etag: response.headers.get('ETag') ?? undefined }
           }
-          results[index] = { href }
         } catch (err) {
           results[index] = { href, error: err instanceof Error ? err.message : String(err) }
         }
@@ -519,21 +543,28 @@ export function useCardDAV() {
     return results
   }
 
-  /** Update an existing contact (PUT with its known href) */
-  async function updateContact(href: string, vcardData: string): Promise<void> {
+  /** Update an existing contact (PUT with its known href).
+   *  Sends If-Match when an etag is known, so a concurrent change from another
+   *  client surfaces as ContactConflictError (412) instead of being silently
+   *  overwritten. Returns the fresh ETag from the response, if provided. */
+  async function updateContact(href: string, vcardData: string, etag?: string): Promise<string | undefined> {
     const appToken = await getAppToken()
+    const headers: Record<string, string> = {
+      ...cardDAVHeaders(appToken),
+      'Content-Type': 'text/vcard; charset=utf-8'
+    }
+    if (etag) headers['If-Match'] = etag
     const response = await fetch(href, {
       method: 'PUT',
-      headers: {
-        ...cardDAVHeaders(appToken),
-        'Content-Type': 'text/vcard; charset=utf-8'
-      },
+      headers,
       body: vcardData
     })
+    if (response.status === 412) throw new ContactConflictError(href)
     if (!response.ok && response.status !== 201 && response.status !== 204) {
       evictTokenOnAuthFailure(response.status)
       throw new Error(`PUT failed: ${response.status} ${response.statusText}`)
     }
+    return response.headers.get('ETag') ?? undefined
   }
 
   /** Delete a single contact by its CardDAV href */
@@ -559,6 +590,7 @@ export function useCardDAV() {
     contacts: readonly(contacts),
     loading: readonly(loading),
     error: readonly(error),
+    ContactConflictError,
     loadContacts,
     putContact,
     putContactsBatch,
