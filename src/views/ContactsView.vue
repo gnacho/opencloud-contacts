@@ -335,16 +335,29 @@ async function setDefaultGroup() {
       categories: [bulkGroup.value.trim()]
     }))
 
-    const items = updated.map((c) => ({ href: c.href!, vcard: contactToVCard(c) }))
+    const items = updated.map((c) => ({ href: c.href!, vcard: contactToVCard(c), etag: c.etag }))
     const results = await updateContactsBatch(items, (done) => { groupDone.value = done })
 
     // Only apply updates that succeeded on the server
-    const succeeded = results.filter((r) => !r.error)
+    const succeeded = results.filter((r) => !r.error && !r.conflict)
     const failed = results.filter((r) => r.error)
-    const succeededHrefs = new Set(succeeded.map((r) => r.href))
-    const byHref = new Map(updated.filter((c) => succeededHrefs.has(c.href!)).map((c) => [c.href!, c]))
-    setContacts(contacts.value.map((c) => byHref.get(c.href!) ?? c))
-    if (failed.length) {
+    const conflicts = results.filter((r) => r.conflict)
+    const byHref = new Map(updated.filter((c) => succeeded.some((r) => r.href === c.href!)).map((c) => [c.href!, c]))
+    const etagByHref = new Map(succeeded.filter((r) => r.etag).map((r) => [r.href, r.etag!]))
+    setContacts(
+      contacts.value.map((c) => {
+        const u = byHref.get(c.href!)
+        if (!u) return c
+        // Keep the fresh ETag so the next edit is protected too.
+        return { ...u, etag: etagByHref.get(c.href!) ?? u.etag }
+      })
+    )
+    if (conflicts.length) {
+      groupError.value = $gettext(
+        '%{n} contact(s) were changed on the server or on another device. Reload the contacts to get their current version.',
+        { n: conflicts.length }
+      )
+    } else if (failed.length) {
       groupError.value = $gettext('%{n} contact(s) could not be updated.', { n: failed.length })
     }
   } finally {

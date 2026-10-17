@@ -140,7 +140,17 @@ const props = defineProps<{ groups: DuplicateGroup[] }>()
 const emit = defineEmits<{ close: []; merged: [] }>()
 
 const { $gettext } = useGettext()
-const { updateContact, deleteContactEntry } = useCardDAV()
+const { updateContact, deleteContactEntry, ContactConflictError } = useCardDAV()
+
+// The base contact changed on the server after it was loaded: merging would
+// silently erase those changes, so the user is told to reload instead.
+function conflictMessage(err: unknown): string | null {
+  return err instanceof ContactConflictError
+    ? $gettext(
+        'This contact was changed on the server or on another device. Reload the contacts and apply your changes again.'
+      )
+    : null
+}
 
 // Keep a local mutable copy so we can remove merged groups without closing
 const localGroups = ref<DuplicateGroup[]>([])
@@ -240,7 +250,7 @@ async function mergeAll() {
       if (selected.length < 2) continue
       const merged = mergeContacts(selected)
       if (!merged.href) continue
-      await updateContact(merged.href, contactToVCard(merged))
+      await updateContact(merged.href, contactToVCard(merged), merged.etag)
       await Promise.all(
         selected
           .filter((c) => c.uid !== merged.uid && c.href)
@@ -250,7 +260,8 @@ async function mergeAll() {
     }
     emit('merged')
   } catch (err) {
-    mergeError.value = err instanceof Error ? err.message : String(err)
+    mergeError.value =
+      conflictMessage(err) ?? (err instanceof Error ? err.message : String(err))
   } finally {
     mergingAll.value = false
   }
@@ -268,7 +279,7 @@ async function onConfirm() {
 
     // Update base contact with merged data
     if (!merged.href) throw new Error('Base contact has no href')
-    await updateContact(merged.href, contactToVCard(merged))
+    await updateContact(merged.href, contactToVCard(merged), merged.etag)
 
     // Delete the duplicates
     await Promise.all(
@@ -287,7 +298,8 @@ async function onConfirm() {
     emit('merged')
     state.value = 'list'
   } catch (err) {
-    mergeError.value = err instanceof Error ? err.message : String(err)
+    mergeError.value =
+      conflictMessage(err) ?? (err instanceof Error ? err.message : String(err))
   } finally {
     merging.value = false
   }

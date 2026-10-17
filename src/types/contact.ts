@@ -22,6 +22,9 @@ export interface Contact {
   uid: string
   /** Full CardDAV URL – used for PUT/DELETE */
   href?: string
+  /** Server ETag of the stored vCard. Sent as If-Match on update so a change
+   *  made by another client surfaces as a 412 instead of being overwritten. */
+  etag?: string
   /** Formatted / display name (FN field) */
   displayName: string
   /** Structured name parts */

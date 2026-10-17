@@ -168,6 +168,9 @@
         </fieldset>
 
         <p v-if="saveError" class="edit-error">{{ saveError }}</p>
+        <button v-if="conflict" class="reload-btn" :disabled="saving" @click="reloadAfterConflict">
+          {{ $gettext('Reload contacts') }}
+        </button>
       </div>
     </template>
   </oc-modal>
@@ -186,11 +189,12 @@ const props = defineProps<{ contact: Contact }>()
 const emit = defineEmits<{ (e: 'close'): void; (e: 'saved', contact: Contact): void }>()
 
 const { $gettext } = useGettext()
-const { updateContact } = useCardDAV()
+const { updateContact, loadContacts, ContactConflictError } = useCardDAV()
 const { contacts, knownGroups, setContacts } = useContactStore()
 
 const saving = ref(false)
 const saveError = ref('')
+const conflict = ref(false)
 
 // Convert birthday from YYYYMMDD to YYYY-MM-DD for <input type="date">
 function toDateInput(bday?: string): string {
@@ -220,6 +224,7 @@ const form = reactive({
 async function save() {
   saving.value = true
   saveError.value = ''
+  conflict.value = false
 
   // Derive display name if empty
   const displayName =
@@ -252,22 +257,40 @@ async function save() {
   try {
     if (!updated.href) throw new Error('No CardDAV URL for this contact')
     const vcard = contactToVCard(updated)
-    await updateContact(updated.href, vcard)
+    const newEtag = await updateContact(updated.href, vcard, updated.etag)
 
     // Update store
     const idx = contacts.value.findIndex((c) => c.uid === updated.uid)
     if (idx !== -1) {
       const newList = [...contacts.value]
-      newList[idx] = { ...updated, raw: vcard }
+      newList[idx] = { ...updated, raw: vcard, etag: newEtag }
       setContacts(newList)
     }
 
     emit('saved', updated)
   } catch (err) {
-    saveError.value = err instanceof Error ? err.message : String(err)
+    if (err instanceof ContactConflictError) {
+      // The stored vCard changed elsewhere (phone, another tab) after it was
+      // loaded: saving would have silently erased those changes.
+      conflict.value = true
+      saveError.value = $gettext(
+        'This contact was changed on the server or on another device. Reload the contacts and apply your changes again.'
+      )
+    } else {
+      saveError.value = err instanceof Error ? err.message : String(err)
+    }
   } finally {
     saving.value = false
   }
+}
+
+/** Re-fetch every contact from the server so the stale local copy is replaced
+ *  by the current one; the dialog closes because the edit is obsolete. */
+async function reloadAfterConflict() {
+  conflict.value = false
+  saveError.value = ''
+  await loadContacts()
+  emit('close')
 }
 </script>
 
@@ -402,5 +425,21 @@ async function save() {
   color: var(--oc-color-swatch-danger-default);
   font-size: 0.9rem;
   margin: 0;
+}
+
+.reload-btn {
+  align-self: flex-start;
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--oc-color-swatch-primary-default);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--oc-color-swatch-primary-default);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.reload-btn:hover {
+  background: var(--oc-color-swatch-primary-default);
+  color: var(--oc-color-swatch-inverse-default, #fff);
 }
 </style>

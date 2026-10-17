@@ -341,8 +341,8 @@ function decodeXmlEntities(text: string): string {
  * Parses a CardDAV REPORT XML response and returns all contacts.
  * Uses regex to handle namespace prefixes reliably (e.g. <d:response>, <CR:address-data>).
  */
-export function parseCardDAVReport(xmlText: string): { href: string; vcardRaw: string }[] {
-  const results: { href: string; vcardRaw: string }[] = []
+export function parseCardDAVReport(xmlText: string): { href: string; vcardRaw: string; etag?: string }[] {
+  const results: { href: string; vcardRaw: string; etag?: string }[] = []
 
   const responseRegex = /<[^:>]*:?response[^>]*>([\s\S]*?)<\/[^:>]*:?response>/gi
   let responseMatch: RegExpExecArray | null
@@ -356,8 +356,15 @@ export function parseCardDAVReport(xmlText: string): { href: string; vcardRaw: s
     const addrMatch = /<[^:>]*:?address-data[^>]*>([\s\S]*?)<\/[^:>]*:?address-data>/i.exec(block)
     const vcardRaw = addrMatch ? decodeXmlEntities(addrMatch[1].trim()) : ''
 
+    // The ETag is what makes concurrent-edit detection possible: it is stored
+    // on the Contact and sent back as If-Match on update, so overwriting a
+    // version changed by another client fails with 412 instead of silently
+    // replacing it.
+    const etagMatch = /<[^:>]*:?getetag[^>]*>([\s\S]*?)<\/[^:>]*:?getetag>/i.exec(block)
+    const etag = etagMatch ? decodeXmlEntities(etagMatch[1].trim()) : undefined
+
     if (vcardRaw && vcardRaw.includes('BEGIN:VCARD')) {
-      results.push({ href, vcardRaw })
+      results.push({ href, vcardRaw, etag })
     }
   }
 

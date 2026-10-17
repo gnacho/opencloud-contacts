@@ -108,6 +108,8 @@
     "Yes": "Sí",
     "https://…": "https://…",
     "vCard": "vCard",
-    "… and %{n} more": "… y %{n} más"
+    "… and %{n} more": "… y %{n} más",
+    "This contact was changed on the server or on another device. Reload the contacts and apply your changes again.": "Este contacto se ha modificado en el servidor o en otro dispositivo. Recarga los contactos y vuelve a aplicar tus cambios.",
+    "%{n} contact(s) were changed on the server or on another device. Reload the contacts to get their current version.": "%{n} contacto(s) se han modificado en el servidor o en otro dispositivo. Recarga los contactos para obtener su versión actual."
   }
 }
