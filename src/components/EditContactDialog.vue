@@ -351,7 +351,20 @@ async function reloadAfterConflict() {
 
 .edit-row-dynamic {
   display: flex;
-  align-items: center;
+  /* Stretch every field to the same height instead of centering: a native
+     <select> can render taller than the text input on some platforms, and a
+     centred select then spills over whatever sits below the row. */
+  align-items: stretch;
+}
+
+.edit-row-dynamic > .edit-remove-btn {
+  align-self: center;
+}
+
+/* Same 0.5rem rhythm as between the rows themselves, so the "Add …" button
+   never sits flush against (or on top of) the last field. */
+.edit-section > .oc-button {
+  margin-top: 0.5rem;
 }
 
 .edit-field {
