@@ -22,6 +22,30 @@
           class="contacts-search"
         />
 
+        <!-- Layout switch: table (list) or cards -->
+        <div class="view-switch" role="group" :aria-label="$gettext('Layout')">
+          <button
+            type="button"
+            class="view-switch-button"
+            :class="{ 'is-active': viewMode === 'list' }"
+            :aria-pressed="viewMode === 'list'"
+            :title="$gettext('List')"
+            @click="setViewMode('list')"
+          >
+            {{ $gettext('List') }}
+          </button>
+          <button
+            type="button"
+            class="view-switch-button"
+            :class="{ 'is-active': viewMode === 'cards' }"
+            :aria-pressed="viewMode === 'cards'"
+            :title="$gettext('Cards')"
+            @click="setViewMode('cards')"
+          >
+            {{ $gettext('Cards') }}
+          </button>
+        </div>
+
         <!-- New contact -->
         <oc-button
           :aria-label="$gettext('New contact')"
@@ -187,6 +211,66 @@
       <p v-else>
         {{ $gettext('No contacts found.') }}
       </p>
+    </div>
+
+    <!-- Card grid -->
+    <div
+      v-else-if="viewMode === 'cards'"
+      class="contacts-cards"
+      role="list"
+      aria-label="Contacts"
+    >
+      <article
+        v-for="contact in filteredContacts"
+        :key="contact.uid"
+        class="contact-card"
+        role="listitem"
+        tabindex="0"
+        @click="openContact(contact)"
+        @keyup.enter="openContact(contact)"
+      >
+        <div class="card-head">
+          <div class="avatar avatar-lg" :style="avatarStyle(contact)" :aria-hidden="!!contact.photoUrl">
+            <img
+              v-if="contact.photoUrl"
+              :src="contact.photoUrl"
+              :alt="contact.displayName"
+              class="avatar-img"
+            />
+            <span v-else class="avatar-initials">{{ initials(contact) }}</span>
+          </div>
+          <div class="card-title-block">
+            <span class="contact-name">{{ contact.displayName }}</span>
+            <span v-if="contact.title" class="contact-title">{{ contact.title }}</span>
+            <span v-if="contact.organization" class="card-org">{{ contact.organization }}</span>
+          </div>
+        </div>
+
+        <div v-if="contact.emails.length || contact.phones.length" class="card-lines">
+          <a
+            v-if="contact.emails.length"
+            :href="mailtoHref(contact.emails[0].value)"
+            class="contact-link card-line"
+            @click.stop
+          >
+            <oc-icon name="mail" size="small" />
+            <span class="card-line-text">{{ contact.emails[0].value }}</span>
+          </a>
+          <a
+            v-if="contact.phones.length"
+            :href="telHref(contact.phones[0].value)"
+            class="contact-link card-line"
+            @click.stop
+          >
+            <oc-icon name="phone" size="small" />
+            <span class="card-line-text">{{ contact.phones[0].value }}</span>
+          </a>
+        </div>
+
+        <div v-if="contact.categories?.length" class="contact-categories card-categories">
+          <span v-for="cat in contact.categories" :key="cat" class="contact-category-chip">{{ cat }}</span>
+        </div>
+      </article>
     </div>
 
     <!-- Contact table -->
@@ -381,6 +465,30 @@ async function onMerged() {
 const searchQuery = ref('')
 const sortKey = ref<'displayName' | 'organization' | 'email' | 'phone'>('displayName')
 const sortAsc = ref(true)
+
+// The layout choice is per browser and remembered: the table stays the default,
+// cards are opt-in.
+const VIEW_MODE_STORAGE_KEY = 'opencloud-contacts.view-mode'
+type ViewMode = 'list' | 'cards'
+
+function storedViewMode(): ViewMode {
+  try {
+    return localStorage.getItem(VIEW_MODE_STORAGE_KEY) === 'cards' ? 'cards' : 'list'
+  } catch {
+    return 'list'
+  }
+}
+
+const viewMode = ref<ViewMode>(storedViewMode())
+
+function setViewMode(mode: ViewMode) {
+  viewMode.value = mode
+  try {
+    localStorage.setItem(VIEW_MODE_STORAGE_KEY, mode)
+  } catch {
+    // Storage unavailable (private mode, quota): the choice simply is not remembered.
+  }
+}
 const showImport = ref(false)
 const showNew = ref(false)
 const showDeleteAll = ref(false)
@@ -836,5 +944,129 @@ watch(
 
 .contacts-footer a:hover {
   text-decoration: underline;
+}
+
+/* --- Layout switch --- */
+.view-switch {
+  display: inline-flex;
+  border: 1px solid var(--oc-color-border);
+  border-radius: 0.375rem;
+  overflow: hidden;
+}
+
+.view-switch-button {
+  border: 0;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  background: transparent;
+  color: var(--oc-color-text-muted);
+  transition: background 0.12s, color 0.12s;
+}
+
+.view-switch-button:hover {
+  color: var(--oc-color-text-default);
+}
+
+.view-switch-button.is-active {
+  background: var(--oc-color-swatch-brand-default);
+  color: #fff;
+}
+
+.view-switch-button:focus-visible {
+  outline: 2px solid var(--oc-color-swatch-brand-default);
+  outline-offset: -2px;
+}
+
+/* --- Card grid --- */
+.contacts-cards {
+  flex: 1;
+  overflow: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: 0.75rem;
+  align-content: start;
+  padding-bottom: 0.5rem;
+}
+
+.contact-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.9rem;
+  border: 1px solid var(--oc-color-border);
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.contact-card:hover,
+.contact-card:focus {
+  background: var(--oc-color-background-highlight);
+  border-color: var(--oc-color-swatch-brand-default);
+  outline: none;
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.avatar-lg {
+  width: 3rem;
+  height: 3rem;
+}
+
+.avatar-lg .avatar-initials {
+  font-size: 1.05rem;
+}
+
+.card-title-block {
+  min-width: 0;
+}
+
+.card-title-block .contact-name,
+.card-title-block .contact-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-org {
+  display: block;
+  margin-top: 0.1rem;
+  font-size: 0.78rem;
+  color: var(--oc-color-text-default);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.card-line {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  min-width: 0;
+}
+
+.card-line-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-categories {
+  margin-top: auto;
 }
 </style>
