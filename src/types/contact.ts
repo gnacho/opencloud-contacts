@@ -62,6 +62,12 @@ export interface Contact {
   raw: string
   /** Data URI or URL for the photo */
   photoUrl?: string
+  /**
+   * Raw lines of properties the parser does not model (REV, IMPP, X-*, …).
+   * They are written back verbatim so saving a contact does not erase them
+   * from the server.
+   */
+  unrecognized?: string[]
   /** Notes */
   note?: string
   /** Contact groups / categories (CATEGORIES field) */

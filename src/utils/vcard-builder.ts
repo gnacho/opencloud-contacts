@@ -112,6 +112,10 @@ export function contactToVCard(contact: Contact): string {
   if (contact.custom3) push(`X-CUSTOM3:${esc(contact.custom3)}`)
   if (contact.custom4) push(`X-CUSTOM4:${esc(contact.custom4)}`)
 
+  // Properties the parser does not model ride along verbatim (already-folded
+  // lines are refolded), so saving cannot erase them from the server.
+  for (const line of contact.unrecognized ?? []) push(line)
+
   if (contact.note) push(`NOTE:${esc(contact.note)}`)
 
   // Photo: vCard 3.0 inline base64 (ENCODING=b), intentionally NOT folded.

@@ -310,6 +310,17 @@ export function parseVCard(raw: string, uid: string): Contact {
       case 'X-CUSTOM2': contact.custom2 = unescapeVCard(decoded).trim() || undefined; break
       case 'X-CUSTOM3': contact.custom3 = unescapeVCard(decoded).trim() || undefined; break
       case 'X-CUSTOM4': contact.custom4 = unescapeVCard(decoded).trim() || undefined; break
+
+      default: {
+        // Keep what we do not model instead of dropping it: the builder
+        // writes these lines back verbatim, so saving cannot silently erase
+        // them from the server. VERSION is the one exception — the builder
+        // already emits its own VERSION line.
+        if (name !== 'VERSION') {
+          contact.unrecognized = [...(contact.unrecognized ?? []), line]
+        }
+        break
+      }
     }
   }
 
