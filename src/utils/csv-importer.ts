@@ -1,3 +1,5 @@
+import { newUid } from './uid'
+
 /**
  * Thunderbird CSV import (German + English column headers)
  */
@@ -39,21 +41,28 @@ export interface CsvContact {
   custom3: string
   custom4: string
   notes: string
+  /** Extension column "Gruppen"/"Categories": JSON array of category names */
+  categories?: string[]
+  /** Extension column "Weitere Telefonnummern"/"Other Phones": JSON array of
+   * phones whose type has no Thunderbird column (VOICE, …) */
+  extraPhones?: { value: string; type?: string }[]
 }
 
-// Computed once — avoids recreating keys on every imported row
-const CONTACT_KEYS = Object.keys({
-  firstName: '', lastName: '', displayName: '', nickname: '',
-  email1: '', email2: '',
-  telWork: '', telHome: '', fax: '', pager: '', mobile: '',
-  homeStreet: '', homeStreet2: '', homeCity: '', homeState: '', homeZip: '', homeCountry: '',
-  workStreet: '', workStreet2: '', workCity: '', workState: '', workZip: '', workCountry: '',
-  title: '', department: '', organization: '',
-  website1: '', website2: '',
-  birthYear: '', birthMonth: '', birthDay: '',
-  custom1: '', custom2: '', custom3: '', custom4: '',
-  notes: '',
-} satisfies CsvContact) as (keyof CsvContact)[]
+// Computed once — avoids recreating keys on every imported row. Only the
+// plain string fields: categories/extraPhones are parsed separately from the
+// JSON extension columns.
+const CONTACT_KEYS = [
+  'firstName', 'lastName', 'displayName', 'nickname',
+  'email1', 'email2',
+  'telWork', 'telHome', 'fax', 'pager', 'mobile',
+  'homeStreet', 'homeStreet2', 'homeCity', 'homeState', 'homeZip', 'homeCountry',
+  'workStreet', 'workStreet2', 'workCity', 'workState', 'workZip', 'workCountry',
+  'title', 'department', 'organization',
+  'website1', 'website2',
+  'birthYear', 'birthMonth', 'birthDay',
+  'custom1', 'custom2', 'custom3', 'custom4',
+  'notes',
+] satisfies readonly (keyof CsvContact)[]
 
 // German and English Thunderbird column name → CsvContact field
 const COLUMN_MAP: Record<string, keyof CsvContact> = {
@@ -94,6 +103,12 @@ const COLUMN_MAP: Record<string, keyof CsvContact> = {
   'Benutzerdef. 3': 'custom3',
   'Benutzerdef. 4': 'custom4',
   'Notizen': 'notes',
+  // Own extension columns (appended after the Thunderbird set; Thunderbird
+  // ignores them, this importer maps them back)
+  'Gruppen': 'categories',
+  'Categories': 'categories',
+  'Weitere Telefonnummern': 'extraPhones',
+  'Other Phones': 'extraPhones',
   // English
   'First Name': 'firstName',
   'Last Name': 'lastName',
@@ -232,9 +247,20 @@ export function parseThunderbirdCSV(csvText: string): CsvContact[] {
   }
 
   // Strip the ' prefix our CSV export adds to formula-like values, both at the
-  // start of a field and after ';' (see neutralizeFormula in csv-exporter)
+  // start of a field and after ';'. The trigger set must match FORMULA_TRIGGER
+  // in csv-exporter (= + - @ tab CR) or a tab-led value round-trips with a
+  // stray apostrophe.
   const get = (cols: string[], key: keyof CsvContact): string =>
-    (cols[fieldIndex.get(key) ?? -1] ?? '').trim().replace(/(^|;)'(?=[=+\-@])/g, '$1')
+    (cols[fieldIndex.get(key) ?? -1] ?? '').trim().replace(/(^|;)'(?=[=+\-@\t\r])/g, '$1')
+
+  const parseJsonCell = <T>(cell: string | undefined): T | undefined => {
+    if (!cell) return undefined
+    try {
+      return JSON.parse(cell) as T
+    } catch {
+      return undefined
+    }
+  }
 
   const contacts: CsvContact[] = []
   for (let i = 1; i < records.length; i++) {
@@ -242,6 +268,19 @@ export function parseThunderbirdCSV(csvText: string): CsvContact[] {
     const c = emptyContact()
     for (const key of CONTACT_KEYS) {
       c[key] = get(cols, key)
+    }
+    const categories = parseJsonCell<unknown>(cols[fieldIndex.get('categories') ?? -1])
+    if (Array.isArray(categories)) {
+      c.categories = categories.filter((x): x is string => typeof x === 'string')
+    }
+    const extraPhones = parseJsonCell<unknown>(cols[fieldIndex.get('extraPhones') ?? -1])
+    if (Array.isArray(extraPhones)) {
+      c.extraPhones = extraPhones
+        .filter((p): p is { value: string; type?: unknown } => typeof p === 'object' && p !== null && typeof (p as { value?: unknown }).value === 'string')
+        .map((p) => ({
+          value: p.value,
+          ...(typeof p.type === 'string' ? { type: p.type } : {})
+        }))
     }
     if (!c.email1 && !c.firstName && !c.lastName && !c.displayName && !c.organization) continue
     contacts.push(c)
@@ -293,7 +332,7 @@ function foldLine(line: string): string {
 }
 
 export function csvContactToVCard(c: CsvContact, defaultCategory?: string): { uid: string; vcard: string } {
-  const uid = crypto.randomUUID()
+  const uid = newUid()
   const out: string[] = ['BEGIN:VCARD', 'VERSION:3.0', `UID:${uid}`]
   const push = (line: string) => out.push(foldLine(line))
 
@@ -314,6 +353,15 @@ export function csvContactToVCard(c: CsvContact, defaultCategory?: string): { ui
   if (c.telHome) push(`TEL;TYPE=HOME:${escapeVCard(c.telHome)}`)
   if (c.fax)     push(`TEL;TYPE=FAX:${escapeVCard(c.fax)}`)
   if (c.pager)   push(`TEL;TYPE=PAGER:${escapeVCard(c.pager)}`)
+
+  // Phones of types without a Thunderbird column (VOICE, …), carried in the
+  // "Weitere Telefonnummern" extension column. The type is sanitised like the
+  // vCard builder does, so a crafted value cannot inject a property line.
+  for (const p of c.extraPhones ?? []) {
+    if (!p.value) continue
+    const type = p.type?.replace(/[^A-Za-z0-9,_-]/g, '') ?? ''
+    push(`TEL${type ? `;TYPE=${type}` : ''}:${escapeVCard(p.value)}`)
+  }
 
   if (c.organization || c.department) {
     push(`ORG:${escapeVCard(c.organization)};${escapeVCard(c.department)}`)
@@ -346,7 +394,10 @@ export function csvContactToVCard(c: CsvContact, defaultCategory?: string): { ui
   if (c.custom3) push(`X-CUSTOM3:${escapeVCard(c.custom3)}`)
   if (c.custom4) push(`X-CUSTOM4:${escapeVCard(c.custom4)}`)
 
-  if (defaultCategory) push(`CATEGORIES:${escapeVCard(defaultCategory)}`)
+  // Categories carried in the "Gruppen" extension column win over the import
+  // default category; the default applies only when the row has none.
+  const categories = c.categories?.length ? c.categories : defaultCategory ? [defaultCategory] : []
+  if (categories.length) push(`CATEGORIES:${categories.map(escapeVCard).join(',')}`)
 
   if (c.notes) push(`NOTE:${escapeVCard(c.notes)}`)
 

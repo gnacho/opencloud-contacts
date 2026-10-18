@@ -144,6 +144,7 @@ import { useGettext } from 'vue3-gettext'
 import { useCardDAV } from '../composables/useCardDAV'
 import { useContactStore } from '../composables/useContactStore'
 import { contactToVCard } from '../utils/vcard-builder'
+import { newUid } from '../utils/uid'
 import type { Contact } from '../types/contact'
 import AvatarUpload from './AvatarUpload.vue'
 

@@ -66,3 +66,43 @@ describe('exportContactsToCSV', () => {
     expect(imported.notes).toBe(note)
   })
 })
+
+describe('export/import round-trip fidelity', () => {
+  it('round-trips a tab-led formula value through the importer', () => {
+    const csv = exportContactsToCSV([makeContact({ note: '\t=1+1' })])
+    const [imported] = parseThunderbirdCSV(csv)
+    expect(imported.notes).toBe('\t=1+1')
+  })
+
+  it('documents the apostrophe-before-trigger ambiguity as a known loss', () => {
+    // neutralizeFormula escapes a leading formula trigger with a ' prefix, so
+    // a value that itself starts with '= cannot be told apart from an escaped
+    // one on re-import; the apostrophe is lost by design.
+    const [imported] = parseThunderbirdCSV(exportContactsToCSV([makeContact({ note: `'=title` })]))
+    expect(imported.notes).toBe('=title')
+  })
+
+  it('round-trips categories through the extension column', () => {
+    const csv = exportContactsToCSV([makeContact({ categories: ['Familie', 'VIP;X'] })])
+    const [imported] = parseThunderbirdCSV(csv)
+    expect(imported.categories).toEqual(['Familie', 'VIP;X'])
+  })
+
+  it('round-trips phones of types the Thunderbird columns do not know', () => {
+    const csv = exportContactsToCSV([
+      makeContact({
+        phones: [
+          { value: '+49 30 1', type: 'VOICE' },
+          { value: '12345', type: 'X-UNKNOWN' },
+          { value: '+34 600', type: 'CELL' }
+        ]
+      })
+    ])
+    const [imported] = parseThunderbirdCSV(csv)
+    expect(imported.mobile).toBe('+34 600')
+    expect(imported.extraPhones).toEqual([
+      { value: '+49 30 1', type: 'VOICE' },
+      { value: '12345', type: 'X-UNKNOWN' }
+    ])
+  })
+})
