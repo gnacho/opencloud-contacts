@@ -244,8 +244,11 @@ export function parseVCard(raw: string, uid: string): Contact {
       }
 
       case 'TEL': {
+        // vCard 4.0 phones are URIs ("TEL;VALUE=uri:tel:+34…"). The app model
+        // keeps plain numbers: with the scheme, the Call button breaks and the
+        // URI is written back to the server on save.
         const phone: ContactPhone = {
-          value: unescapeVCard(decoded).trim(),
+          value: unescapeVCard(decoded).trim().replace(/^tel:/i, ''),
           type: resolveType(params)
         }
         if (phone.value) contact.phones.push(phone)
@@ -256,6 +259,8 @@ export function parseVCard(raw: string, uid: string): Contact {
         // ADR:POBox;Extended;Street;City;Region;PostalCode;Country
         const parts = splitStructured(decoded).map((p) => unescapeVCard(p).trim())
         const address: ContactAddress = {
+          poBox:      parts[0] || undefined,
+          extended:   parts[1] || undefined,
           street:     parts[2] || undefined,
           city:       parts[3] || undefined,
           region:     parts[4] || undefined,

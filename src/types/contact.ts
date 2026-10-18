@@ -9,6 +9,8 @@ export interface ContactPhone {
 }
 
 export interface ContactAddress {
+  poBox?: string // RFC 6350 ADR component 1
+  extended?: string // RFC 6350 ADR component 2 (unit, floor, …)
   street?: string
   city?: string
   region?: string
