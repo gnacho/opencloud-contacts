@@ -296,6 +296,67 @@ describe('parseVCard — repeated parameters', () => {
   })
 })
 
+describe('parseVCard — vCard 4.0 tel URIs and full ADR', () => {
+  it('strips the tel: scheme from a VALUE=uri phone, leaving PREF as no type', () => {
+    const contact = parseVCard(
+      ['BEGIN:VCARD', 'VERSION:4.0', 'FN:Jane', 'TEL;PREF=1;VALUE=uri:tel:+34600111222', 'END:VCARD'].join(
+        '\r\n'
+      ),
+      'fallback-id'
+    )
+
+    expect(contact.phones).toEqual([{ value: '+34600111222', type: undefined }])
+  })
+
+  it('strips the tel: scheme even when VALUE=uri is absent', () => {
+    const contact = parseVCard(
+      ['BEGIN:VCARD', 'VERSION:3.0', 'FN:Jane', 'TEL:tel:+34600111222', 'END:VCARD'].join('\r\n'),
+      'fallback-id'
+    )
+
+    expect(contact.phones).toEqual([{ value: '+34600111222', type: undefined }])
+  })
+
+  it('keeps PO box and unit of an ADR and writes them back on save', () => {
+    const raw = [
+      'BEGIN:VCARD',
+      'VERSION:4.0',
+      'FN:Jane',
+      'ADR;TYPE=HOME:PO Box 5;Apt 3;Main St 1;Berlin;;10115;DE',
+      'END:VCARD'
+    ].join('\r\n')
+    const contact = parseVCard(raw, 'fallback-id')
+
+    expect(contact.addresses).toEqual([
+      {
+        poBox: 'PO Box 5',
+        extended: 'Apt 3',
+        street: 'Main St 1',
+        city: 'Berlin',
+        region: undefined,
+        postalCode: '10115',
+        country: 'DE',
+        type: 'HOME'
+      }
+    ])
+    expect(contactToVCard(contact)).toContain('ADR;TYPE=HOME:PO Box 5;Apt 3;Main St 1;Berlin;;10115;DE')
+  })
+
+  it('keeps a vCard 3.0 ADR intact through a round-trip', () => {
+    const raw = [
+      'BEGIN:VCARD',
+      'VERSION:3.0',
+      'FN:Jane',
+      'ADR;TYPE=WORK:Box 1;Floor 2;Street 3;City;ST;12345;US',
+      'END:VCARD'
+    ].join('\r\n')
+    const contact = parseVCard(raw, 'fallback-id')
+
+    expect(contact.addresses[0]).toMatchObject({ poBox: 'Box 1', extended: 'Floor 2' })
+    expect(contactToVCard(contact)).toContain('ADR;TYPE=WORK:Box 1;Floor 2;Street 3;City;ST;12345;US')
+  })
+})
+
 describe('parseCardDAVReport', () => {
   it('extracts href, etag and vcard payloads from namespaced report XML', () => {
     const xml = `

@@ -91,7 +91,7 @@ export function contactToVCard(contact: Contact): string {
 
   for (const addr of contact.addresses) {
     push(
-      `ADR${typeParam(addr.type)}:;;${esc(addr.street ?? '')};${esc(addr.city ?? '')};${esc(addr.region ?? '')};${esc(addr.postalCode ?? '')};${esc(addr.country ?? '')}`
+      `ADR${typeParam(addr.type)}:${esc(addr.poBox ?? '')};${esc(addr.extended ?? '')};${esc(addr.street ?? '')};${esc(addr.city ?? '')};${esc(addr.region ?? '')};${esc(addr.postalCode ?? '')};${esc(addr.country ?? '')}`
     )
   }
 
