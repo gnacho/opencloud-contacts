@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest'
+import { exportContactsToCSV } from './csv-exporter'
+import type { Contact } from '../types/contact'
 import { parseThunderbirdCSV, csvContactToVCard } from './csv-importer'
 
 describe('parseThunderbirdCSV', () => {
@@ -92,3 +94,45 @@ function emptyContact() {
     notes: '',
   }
 }
+
+describe('csvContactToVCard — extension columns', () => {
+  function roundTrip(contact: Partial<Contact>): ReturnType<typeof parseThunderbirdCSV>[number] {
+    const full: Contact = {
+      uid: 'c-1',
+      displayName: 'Jane Doe',
+      emails: [],
+      phones: [],
+      addresses: [],
+      raw: '',
+      ...contact
+    }
+    const [row] = parseThunderbirdCSV(exportContactsToCSV([full]))
+    return row
+  }
+
+  it('writes categories and unlisted phone types back into the vCard', () => {
+    const row = roundTrip({
+      categories: ['Familie'],
+      phones: [{ value: '+49 30 1', type: 'VOICE' }]
+    })
+    const { vcard } = csvContactToVCard(row)
+
+    expect(vcard).toContain('CATEGORIES:Familie')
+    expect(vcard).toContain('TEL;TYPE=VOICE:+49 30 1')
+  })
+
+  it('lets explicit categories win over the import default category', () => {
+    const row = roundTrip({ categories: ['Familie'] })
+    const { vcard } = csvContactToVCard(row, 'Import 2026')
+
+    expect(vcard).toContain('CATEGORIES:Familie')
+    expect(vcard).not.toContain('Import 2026')
+  })
+
+  it('keeps the default category when the row has none', () => {
+    const row = roundTrip({})
+    const { vcard } = csvContactToVCard(row, 'Import 2026')
+
+    expect(vcard).toContain('CATEGORIES:Import 2026')
+  })
+})

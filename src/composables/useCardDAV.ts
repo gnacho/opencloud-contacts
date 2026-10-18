@@ -1,6 +1,7 @@
 import { ref, readonly } from 'vue'
 import { useAuthStore, useUserStore } from '@opencloud-eu/web-pkg'
 import { parseVCard, parseCardDAVReport, parseAddressBookPropfind } from '../utils/vcard-parser'
+import { dedupeContacts } from '../utils/contact-dedup'
 import { useContactStore } from './useContactStore'
 import type { Contact } from '../types/contact'
 
@@ -331,13 +332,7 @@ export function useCardDAV() {
 
       if (epoch !== loadEpoch) return // stale — a newer load has started
 
-      // Deduplicate by UID
-      const seen = new Set<string>()
-      const deduped = allContacts.filter((c) => {
-        if (seen.has(c.uid)) return false
-        seen.add(c.uid)
-        return true
-      })
+      const deduped = dedupeContacts(allContacts)
       contacts.value = deduped
       contactStore.setContacts(deduped)
     } catch (err) {
