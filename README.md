@@ -26,7 +26,21 @@ A CardDAV contacts web application for [OpenCloud](https://opencloud.eu) 8.x, bu
 
 ## Installation
 
-### Option 1: Zip download (recommended)
+### The easy way (`ocapps-ext`)
+
+Our mirror publishes a build per tag (`contacts-X.Y.Z.zip`), so the app can be
+installed and updated from the server with
+[`ocapps-ext`](https://github.com/gnacho/ocapps/blob/main/deploy/README.md):
+
+```bash
+ocapps-ext install opencloud-contacts   # first install: download, apps.yaml entry, restart, verify
+ocapps-ext update                       # update every app that came from a release
+ocapps-ext rollback opencloud-contacts  # restore the previous directory
+```
+
+It needs a running Radicale behind the OpenCloud proxy (`/carddav/`).
+
+### Option 1: Zip download (manual)
 
 1. Download `contacts-vX.Y.Z.zip` from the [latest release](https://forgejo.linux-nerds.org/frank/opencloud-contacts/releases)
 2. Extract the zip — it contains an `opencloud-contacts/` folder
